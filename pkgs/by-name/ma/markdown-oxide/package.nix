@@ -1,17 +1,17 @@
-{ lib
-, rustPlatform
-, fetchFromGitHub
+{
+  lib,
+  rustPlatform,
+  fetchFromGitHub,
 }:
-
 rustPlatform.buildRustPackage rec {
   pname = "markdown-oxide";
-  version = "0.0.16";
+  version = "0.25.0";
 
   src = fetchFromGitHub {
     owner = "Feel-ix-343";
     repo = "markdown-oxide";
     rev = "v${version}";
-    hash = "sha256-RCoyiEkaTDbLtkMWSCM9nOHURHw5D7vsnr/yl91CuVQ=";
+    hash = "sha256-rqwtrW5SXbml+Gi1MMlYgkzftVkrQOn07LrYV6TWijo=";
   };
 
   cargoLock = {
@@ -21,11 +21,14 @@ rustPlatform.buildRustPackage rec {
     };
   };
 
-  meta = with lib; {
-    description = "A markdown LSP server inspired by Obsidian";
+  meta = {
+    description = "Markdown LSP server inspired by Obsidian";
     homepage = "https://github.com/Feel-ix-343/markdown-oxide";
-    license = with licenses; [ cc0 ];
-    maintainers = with maintainers; [ linsui ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [
+      linsui
+      jukremer
+    ];
     mainProgram = "markdown-oxide";
   };
 }

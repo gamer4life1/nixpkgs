@@ -1,11 +1,11 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonRelaxDepsHook
-, pytestCheckHook
-, pdm-backend
-, numpy
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  pdm-backend,
+  numpy,
+  setuptools,
 }:
 
 buildPythonPackage rec {
@@ -16,13 +16,12 @@ buildPythonPackage rec {
   src = fetchFromGitHub {
     owner = "DLR-RM";
     repo = "python-jsonconversion";
-    rev = "refs/tags/${version}";
+    tag = version;
     hash = "sha256-XmAQXu9YkkMUvpf/QVk4u1p8UyNfRb0NeoLxC1evCT4=";
   };
 
   build-system = [
     pdm-backend
-    pythonRelaxDepsHook
   ];
 
   pythonRemoveDeps = [
@@ -35,13 +34,9 @@ buildPythonPackage rec {
     setuptools
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "jsonconversion"
-  ];
+  pythonImportsCheck = [ "jsonconversion" ];
 
   meta = with lib; {
     description = "This python module helps converting arbitrary Python objects into JSON strings and back";

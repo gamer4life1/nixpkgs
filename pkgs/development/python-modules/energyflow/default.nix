@@ -1,11 +1,12 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, h5py
-, numpy
-, six
-, wasserstein
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  h5py,
+  numpy,
+  six,
+  wasserstein,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
@@ -15,7 +16,7 @@ buildPythonPackage rec {
   src = fetchFromGitHub {
     owner = "pkomiske";
     repo = "EnergyFlow";
-    rev = "refs/tags/v${version}";
+    tag = "v${version}";
     hash = "sha256-Ioyk0IpyxcDdL2+3zkUa6yydavyphoh4do7GCz5nG60=";
   };
 
@@ -32,12 +33,8 @@ buildPythonPackage rec {
     wasserstein
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
-  pytestFlagsArray = [
-    "energyflow/tests"
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
+  pytestFlagsArray = [ "energyflow/tests" ];
   disabledTestPaths = [
     "energyflow/tests/test_archs.py" # requires tensorflow
     "energyflow/tests/test_emd.py" # requires "ot"

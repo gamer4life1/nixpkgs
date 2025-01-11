@@ -79,18 +79,20 @@ let
   prepareManualFromMD = ''
     cp -r --no-preserve=all $inputs/* .
 
+    cp -r ${../../../doc/release-notes} ./release-notes-nixpkgs
+
     substituteInPlace ./manual.md \
-      --replace '@NIXOS_VERSION@' "${version}"
+      --replace-fail '@NIXOS_VERSION@' "${version}"
     substituteInPlace ./configuration/configuration.md \
-      --replace \
+      --replace-fail \
           '@MODULE_CHAPTERS@' \
           ${escapeShellArg (concatMapStringsSep "\n" (p: "${p.value}") config.meta.doc)}
     substituteInPlace ./nixos-options.md \
-      --replace \
+      --replace-fail \
         '@NIXOS_OPTIONS_JSON@' \
         ${optionsDoc.optionsJSON}/${common.outputPath}/options.json
     substituteInPlace ./development/writing-nixos-tests.section.md \
-      --replace \
+      --replace-fail \
         '@NIXOS_TEST_OPTIONS_JSON@' \
         ${testOptionsDoc.optionsJSON}/${common.outputPath}/options.json
     sed -e '/@PYTHON_MACHINE_METHODS@/ {' -e 'r ${testDriverMachineDocstrings}/machine-methods.md' -e 'd' -e '}' \
@@ -122,6 +124,7 @@ in rec {
 
       nixos-render-docs -j $NIX_BUILD_CORES manual html \
         --manpage-urls ${manpageUrls} \
+        --redirects ${./redirects.json} \
         --revision ${escapeShellArg revision} \
         --generator "nixos-render-docs ${pkgs.lib.version}" \
         --stylesheet style.css \

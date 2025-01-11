@@ -1,44 +1,46 @@
 {
   lib,
-  stdenvNoCC,
-  fetchurl,
-  makeWrapper,
-  dotnet-sdk_8,
+  buildDotnetModule,
+  fetchFromGitHub,
+  dotnetCorePackages,
+  technitium-dns-server-library,
   nixosTests,
+  nix-update-script,
 }:
-stdenvNoCC.mkDerivation rec {
+buildDotnetModule rec {
   pname = "technitium-dns-server";
-  version = "12.1";
+  version = "13.2";
 
-  src = fetchurl {
-    url = "https://download.technitium.com/dns/archive/${version}/DnsServerPortable.tar.gz";
-    hash = "sha256-G0M2xuYBZA3XXXaPs4pLrJmzAMbVJhiqISAvuCw3iZo=";
+  src = fetchFromGitHub {
+    owner = "TechnitiumSoftware";
+    repo = "DnsServer";
+    tag = "v${version}";
+    hash = "sha256-oxLMBs+XkzvlfSst6ZD56ZIgiXwm0Px8Tn3Trdd/6H8=";
+    name = "${pname}-${version}";
   };
 
-  sourceRoot = ".";
+  dotnet-sdk = dotnetCorePackages.sdk_8_0;
+  dotnet-runtime = dotnetCorePackages.aspnetcore_8_0;
 
-  nativeBuildInputs = [ makeWrapper ];
+  nugetDeps = ./nuget-deps.json;
 
-  installPhase = ''
-    runHook preInstall
+  projectFile = [ "DnsServerApp/DnsServerApp.csproj" ];
 
-    mkdir -p $out/{bin,share/${pname}-${version}}
-    cp -r * $out/share/${pname}-${version}/.
-    rm $out/share/${pname}-${version}/start.{sh,bat}
-    rm $out/share/${pname}-${version}/DnsServerApp.exe
-    rm $out/share/${pname}-${version}/env-vars
-    # Remove systemd.service in favor of a separate module (including firewall configuration).
-    rm $out/share/${pname}-${version}/systemd.service
+  # move dependencies from TechnitiumLibrary to the expected directory
+  preBuild = ''
+    mkdir -p ../TechnitiumLibrary/bin
+    cp -r ${technitium-dns-server-library}/lib/${technitium-dns-server-library.pname}/* ../TechnitiumLibrary/bin/
+  '';
 
-    makeWrapper "${dotnet-sdk_8}/bin/dotnet" $out/bin/technitium-dns-server \
-      --add-flags "$out/share/${pname}-${version}/DnsServerApp.dll"
-
-    runHook postInstall
+  postFixup = ''
+    mv $out/bin/DnsServerApp $out/bin/technitium-dns-server
   '';
 
   passthru.tests = {
     inherit (nixosTests) technitium-dns-server;
   };
+
+  passthru.updateScript = nix-update-script { };
 
   meta = {
     changelog = "https://github.com/TechnitiumSoftware/DnsServer/blob/master/CHANGELOG.md";
@@ -47,6 +49,6 @@ stdenvNoCC.mkDerivation rec {
     license = lib.licenses.gpl3Only;
     mainProgram = "technitium-dns-server";
     maintainers = with lib.maintainers; [ fabianrig ];
-    sourceProvenance = with lib.sourceTypes; [ binaryBytecode ];
+    platforms = lib.platforms.linux;
   };
 }

@@ -1,9 +1,12 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, hatchling
-, more-itertools
-, click
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatchling,
+  more-itertools,
+  click,
+  hyprland,
+  makeWrapper,
 }:
 
 buildPythonPackage rec {
@@ -14,18 +17,24 @@ buildPythonPackage rec {
   src = fetchFromGitHub {
     owner = "loqusion";
     repo = "hyprshade";
-    rev = "refs/tags/${version}";
+    tag = version;
     hash = "sha256-MlbNE9n//Qb6OJc3DMkOpnPtoodfV8JlG/I5rOfWMtQ=";
   };
 
   nativeBuildInputs = [
     hatchling
+    makeWrapper
   ];
 
-  propagatedBuildInputs = [ more-itertools click ];
+  propagatedBuildInputs = [
+    more-itertools
+    click
+  ];
 
   postFixup = ''
-    wrapProgram $out/bin/hyprshade --set HYPRSHADE_SHADERS_DIR $out/share/hyprshade/shaders
+    wrapProgram $out/bin/hyprshade \
+      --set HYPRSHADE_SHADERS_DIR $out/share/hyprshade/shaders \
+      --prefix PATH : ${lib.makeBinPath [ hyprland ]}
   '';
 
   meta = with lib; {

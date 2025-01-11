@@ -1,14 +1,15 @@
-{ stdenv
-, wrapCCWith
-, llvm
-, lld
-, clang-unwrapped
-, bintools
-, libc
-, libunwind
-, libcxxabi
-, libcxx
-, compiler-rt
+{
+  stdenv,
+  wrapCCWith,
+  llvm,
+  lld,
+  clang-unwrapped,
+  bintools,
+  libc,
+  libunwind,
+  libcxxabi,
+  libcxx,
+  compiler-rt,
 }:
 
 wrapCCWith rec {
@@ -39,7 +40,10 @@ wrapCCWith rec {
     '';
 
     passthru.isClang = true;
+    passthru.isROCm = true;
   });
+
+  gccForLibs = stdenv.cc.cc;
 
   extraPackages = [
     llvm
@@ -68,6 +72,6 @@ wrapCCWith rec {
 
     # GPU compilation uses builtin `lld`
     substituteInPlace $out/bin/{clang,clang++} \
-      --replace "-MM) dontLink=1 ;;" "-MM | --cuda-device-only) dontLink=1 ;;''\n--cuda-host-only | --cuda-compile-host-device) dontLink=0 ;;"
+      --replace-fail "-MM) dontLink=1 ;;" "-MM | --cuda-device-only) dontLink=1 ;;''\n--cuda-host-only | --cuda-compile-host-device) dontLink=0 ;;"
   '';
 }

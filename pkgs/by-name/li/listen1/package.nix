@@ -1,4 +1,8 @@
-{ lib, fetchurl, appimageTools }:
+{
+  lib,
+  fetchurl,
+  appimageTools,
+}:
 
 let
   pname = "listen1";
@@ -13,7 +17,6 @@ appimageTools.wrapType2 {
   inherit pname version src;
 
   extraInstallCommands = ''
-    mv $out/bin/${pname}-${version} $out/bin/${pname}
     install -m 444 -D ${appimageContents}/listen1.desktop -t $out/share/applications
     substituteInPlace $out/share/applications/listen1.desktop \
       --replace 'Exec=AppRun' 'Exec=${pname}'

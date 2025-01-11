@@ -101,6 +101,7 @@ let
           libPath = filter (pkgs.path + "/lib");
           pkgsLibPath = filter (pkgs.path + "/pkgs/pkgs-lib");
           nixosPath = filter (pkgs.path + "/nixos");
+          NIX_ABORT_ON_WARN = warningsAreErrors;
           modules =
             "[ "
             + concatMapStringsSep " " (p: ''"${removePrefix "${modulesPath}/" (toString p)}"'') docModules.lazy
@@ -366,7 +367,13 @@ in
     })
 
     (mkIf cfg.doc.enable {
-      environment.pathsToLink = [ "/share/doc" ];
+      environment.pathsToLink = [
+        "/share/doc"
+
+        # Legacy paths used by gtk-doc & adjacent tools.
+        "/share/gtk-doc"
+        "/share/devhelp"
+      ];
       environment.extraOutputsToInstall = [ "doc" ] ++ optional cfg.dev.enable "devdoc";
     })
 

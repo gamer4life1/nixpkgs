@@ -1,23 +1,24 @@
-{ lib
-, stdenv
-, fetchurl
-, pkg-config
-, gettext
-, itstool
-, libxml2
-, libcanberra-gtk3
-, libgtop
-, libXdamage
-, libXpresent
-, libXres
-, libstartup_notification
-, gnome
-, glib
-, gtk3
-, mate-desktop
-, mate-settings-daemon
-, wrapGAppsHook
-, mateUpdateScript
+{
+  lib,
+  stdenv,
+  fetchurl,
+  pkg-config,
+  gettext,
+  itstool,
+  libxml2,
+  libcanberra-gtk3,
+  libgtop,
+  libXdamage,
+  libXpresent,
+  libXres,
+  libstartup_notification,
+  zenity,
+  glib,
+  gtk3,
+  mate-desktop,
+  mate-settings-daemon,
+  wrapGAppsHook3,
+  mateUpdateScript,
 }:
 
 stdenv.mkDerivation rec {
@@ -33,7 +34,7 @@ stdenv.mkDerivation rec {
     pkg-config
     gettext
     itstool
-    wrapGAppsHook
+    wrapGAppsHook3
   ];
 
   buildInputs = [
@@ -45,14 +46,14 @@ stdenv.mkDerivation rec {
     libXres
     libstartup_notification
     gtk3
-    gnome.zenity
+    zenity
     mate-desktop
     mate-settings-daemon
   ];
 
   postPatch = ''
     substituteInPlace src/core/util.c \
-      --replace-fail 'argvl[i++] = "zenity"' 'argvl[i++] = "${gnome.zenity}/bin/zenity"'
+      --replace-fail 'argvl[i++] = "zenity"' 'argvl[i++] = "${zenity}/bin/zenity"'
   '';
 
   env.NIX_CFLAGS_COMPILE = "-I${glib.dev}/include/gio-unix-2.0";

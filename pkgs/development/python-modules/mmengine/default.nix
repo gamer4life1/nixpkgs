@@ -1,38 +1,61 @@
 {
   lib,
-  addict,
+  stdenv,
   buildPythonPackage,
-  coverage,
   fetchFromGitHub,
-  lmdb,
+  fetchpatch2,
+
+  # build-system
+  setuptools,
+
+  # dependencies
+  addict,
   matplotlib,
-  mlflow,
   numpy,
   opencv4,
-  parameterized,
-  pytestCheckHook,
-  pythonOlder,
   pyyaml,
   rich,
-  setuptools,
   termcolor,
-  torch,
   yapf,
+
+  # checks
+  bitsandbytes,
+  coverage,
+  dvclive,
+  lion-pytorch,
+  lmdb,
+  mlflow,
+  parameterized,
+  pytestCheckHook,
+  transformers,
 }:
 
 buildPythonPackage rec {
   pname = "mmengine";
-  version = "0.10.3";
+  version = "0.10.5";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "open-mmlab";
     repo = "mmengine";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-fKtPDdeKB3vX2mD+Tsicq8KOkPDSACzKK1XLyugdPQ4=";
+    tag = "v${version}";
+    hash = "sha256-bZ6O4UOYUCwq11YmgRWepOIngYxYD/fNfM/VmcyUv9k=";
   };
+
+  patches = [
+    (fetchpatch2 {
+      name = "mmengine-torch-2.5-compat.patch";
+      url = "https://github.com/open-mmlab/mmengine/commit/4c22f78cdea2981a2b48a167e9feffe4721f8901.patch";
+      hash = "sha256-k+IFLeqTEVUGGiqmZg56LK64H/UTvpGN20GJT59wf4A=";
+    })
+    (fetchpatch2 {
+      # Bug reported upstream in https://github.com/open-mmlab/mmengine/issues/1575
+      # PR: https://github.com/open-mmlab/mmengine/pull/1589
+      name = "adapt-to-pytest-breaking-change";
+      url = "https://patch-diff.githubusercontent.com/raw/open-mmlab/mmengine/pull/1589.patch";
+      hash = "sha256-lyKf1GCLOPMpDttJ4s9hbATIGCVkiQhtyLfH9WzMWrw=";
+    })
+  ];
 
   build-system = [ setuptools ];
 
@@ -48,17 +71,20 @@ buildPythonPackage rec {
   ];
 
   nativeCheckInputs = [
+    bitsandbytes
     coverage
+    dvclive
+    lion-pytorch
     lmdb
     mlflow
     parameterized
     pytestCheckHook
-    torch
+    transformers
   ];
 
   preCheck =
     ''
-      export HOME=$TMPDIR
+      export HOME=$(mktemp -d)
     ''
     # Otherwise, the backprop hangs forever. More precisely, this exact line:
     # https://github.com/open-mmlab/mmengine/blob/02f80e8bdd38f6713e04a872304861b02157905a/tests/test_runner/test_activation_checkpointing.py#L46
@@ -99,16 +125,13 @@ buildPythonPackage rec {
     "test_close"
   ];
 
-  pytestFlagsArray = [
-    "-W"
-    "ignore::pytest.PytestRemovedIn8Warning"
-  ];
-
-  meta = with lib; {
+  meta = {
     description = "Library for training deep learning models based on PyTorch";
     homepage = "https://github.com/open-mmlab/mmengine";
     changelog = "https://github.com/open-mmlab/mmengine/releases/tag/v${version}";
-    license = with licenses; [ asl20 ];
-    maintainers = with maintainers; [ rxiao ];
+    license = with lib.licenses; [ asl20 ];
+    maintainers = with lib.maintainers; [ rxiao ];
+    broken =
+      stdenv.hostPlatform.isDarwin || (stdenv.hostPlatform.isLinux && stdenv.hostPlatform.isAarch64);
   };
 }

@@ -1,26 +1,27 @@
-{ lib
-, python3Packages
-, fetchFromGitHub
+{
+  lib,
+  python3Packages,
+  fetchFromGitHub,
 }:
 
 python3Packages.buildPythonApplication rec {
   pname = "wyoming-faster-whisper";
-  version = "2.0.0";
+  version = "2.2.0";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "rhasspy";
     repo = "wyoming-faster-whisper";
     rev = "refs/tags/v${version}";
-    hash = "sha256-CeFSxL2Mn9lgboKghbteCl6VMTqruJgrI0io+TdaV5k=";
+    hash = "sha256-G46ycjpRu4MD00FiBM1H0DrPpXaaPlZ8yeoyZ7WYD48=";
   };
 
   nativeBuildInputs = with python3Packages; [
     setuptools
-    pythonRelaxDepsHook
   ];
 
   pythonRelaxDeps = [
+    "faster-whisper"
     "wyoming"
   ];
 

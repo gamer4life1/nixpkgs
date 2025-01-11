@@ -1,20 +1,21 @@
-{ lib
-, stdenv
-, fetchurl
-, pkg-config
-, gettext
-, itstool
-, gtk3
-, caja
-, dbus-glib
-, libnotify
-, libxml2
-, libcanberra-gtk3
-, apacheHttpdPackages
-, hicolor-icon-theme
-, mate
-, wrapGAppsHook
-, mateUpdateScript
+{
+  lib,
+  stdenv,
+  fetchurl,
+  pkg-config,
+  gettext,
+  itstool,
+  gtk3,
+  caja,
+  dbus-glib,
+  libnotify,
+  libxml2,
+  libcanberra-gtk3,
+  apacheHttpdPackages,
+  hicolor-icon-theme,
+  mate,
+  wrapGAppsHook3,
+  mateUpdateScript,
 }:
 
 let
@@ -34,7 +35,7 @@ stdenv.mkDerivation rec {
     gettext
     itstool
     libxml2
-    wrapGAppsHook
+    wrapGAppsHook3
   ];
 
   buildInputs = [

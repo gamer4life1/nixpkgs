@@ -1,7 +1,8 @@
-{ config
-, pkgs
-, lib
-, ...
+{
+  config,
+  pkgs,
+  lib,
+  ...
 }:
 let
   cfg = config.services.silverbullet;
@@ -12,33 +13,33 @@ in
 {
   options = {
     services.silverbullet = {
-      enable = lib.mkEnableOption (lib.mdDoc "Silverbullet, an open-source, self-hosted, offline-capable Personal Knowledge Management (PKM) web application.");
+      enable = lib.mkEnableOption "Silverbullet, an open-source, self-hosted, offline-capable Personal Knowledge Management (PKM) web application";
 
-      package = lib.mkPackageOptionMD pkgs "silverbullet" { };
+      package = lib.mkPackageOption pkgs "silverbullet" { };
 
       openFirewall = lib.mkOption {
         type = lib.types.bool;
         default = false;
-        description = lib.mdDoc "Open port in the firewall.";
+        description = "Open port in the firewall.";
       };
 
       listenPort = lib.mkOption {
         type = lib.types.int;
         default = 3000;
-        description = lib.mdDoc "Port to listen on.";
+        description = "Port to listen on.";
       };
 
       listenAddress = lib.mkOption {
         type = lib.types.str;
         default = "127.0.0.1";
-        description = lib.mdDoc "Address or hostname to listen on. Defaults to 127.0.0.1.";
+        description = "Address or hostname to listen on. Defaults to 127.0.0.1.";
       };
 
       spaceDir = lib.mkOption {
         type = lib.types.path;
         default = defaultSpaceDir;
         example = "/home/yourUser/silverbullet";
-        description = lib.mdDoc ''
+        description = ''
           Folder to store Silverbullet's space/workspace.
           By default it is located at `${defaultSpaceDir}`.
         '';
@@ -48,7 +49,7 @@ in
         type = lib.types.str;
         default = defaultUser;
         example = "yourUser";
-        description = lib.mdDoc ''
+        description = ''
           The user to run Silverbullet as.
           By default, a user named `${defaultUser}` will be created whose space
           directory is [spaceDir](#opt-services.silverbullet.spaceDir).
@@ -59,7 +60,7 @@ in
         type = lib.types.str;
         default = defaultGroup;
         example = "yourGroup";
-        description = lib.mdDoc ''
+        description = ''
           The group to run Silverbullet under.
           By default, a group named `${defaultGroup}` will be created.
         '';
@@ -69,7 +70,7 @@ in
         type = lib.types.nullOr lib.types.path;
         default = null;
         example = "/etc/silverbullet.env";
-        description = lib.mdDoc ''
+        description = ''
           File containing extra environment variables. For example:
 
           ```
@@ -83,7 +84,7 @@ in
         type = lib.types.listOf lib.types.str;
         default = [ ];
         example = [ "--db /path/to/silverbullet.db" ];
-        description = lib.mdDoc "Extra arguments passed to silverbullet.";
+        description = "Extra arguments passed to silverbullet.";
       };
     };
   };
@@ -100,8 +101,12 @@ in
         User = "${cfg.user}";
         Group = "${cfg.group}";
         EnvironmentFile = lib.mkIf (cfg.envFile != null) "${cfg.envFile}";
-        StateDirectory = lib.mkIf (lib.hasPrefix "/var/lib/" cfg.spaceDir) (lib.last (lib.splitString "/" cfg.spaceDir));
-        ExecStart = "${lib.getExe cfg.package} --port ${toString cfg.listenPort} --hostname '${cfg.listenAddress}' '${cfg.spaceDir}' " + lib.concatStringsSep " " cfg.extraArgs;
+        StateDirectory = lib.mkIf (lib.hasPrefix "/var/lib/" cfg.spaceDir) (
+          lib.last (lib.splitString "/" cfg.spaceDir)
+        );
+        ExecStart =
+          "${lib.getExe cfg.package} --port ${toString cfg.listenPort} --hostname '${cfg.listenAddress}' '${cfg.spaceDir}' "
+          + lib.concatStringsSep " " cfg.extraArgs;
         Restart = "on-failure";
       };
     };

@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   inherit (lib)
@@ -7,12 +12,12 @@ let
     lists
     literalExpression
     maintainers
-    mdDoc
     mkEnableOption
     mkIf
     mkOption
     mkPackageOption
-    types;
+    types
+    ;
 
   cfg = config.services.dnsproxy;
 
@@ -25,7 +30,7 @@ in
 
   options.services.dnsproxy = {
 
-    enable = mkEnableOption (lib.mdDoc "dnsproxy");
+    enable = mkEnableOption "dnsproxy";
 
     package = mkPackageOption pkgs "dnsproxy" { };
 
@@ -48,7 +53,7 @@ in
           ];
         }
       '';
-      description = mdDoc ''
+      description = ''
         Contents of the `config.yaml` config file.
         The `--config-path` argument will only be passed if this set is not empty.
 
@@ -60,7 +65,7 @@ in
       type = types.listOf types.str;
       default = [ ];
       example = [ "--upstream=1.1.1.1:53" ];
-      description = lib.mdDoc ''
+      description = ''
         A list of extra command-line flags to pass to dnsproxy. For details on the
         available options, see <https://github.com/AdguardTeam/dnsproxy#usage>.
         Keep in mind that options passed through command-line flags override
@@ -73,7 +78,10 @@ in
   config = mkIf cfg.enable {
     systemd.services.dnsproxy = {
       description = "Simple DNS proxy with DoH, DoT, DoQ and DNSCrypt support";
-      after = [ "network.target" "nss-lookup.target" ];
+      after = [
+        "network.target"
+        "nss-lookup.target"
+      ];
       wantedBy = [ "multi-user.target" ];
       serviceConfig = {
         ExecStart = "${getExe cfg.package} ${escapeShellArgs finalFlags}";
@@ -90,13 +98,19 @@ in
         ProtectHostname = true;
         ProtectKernelLogs = true;
         RemoveIPC = true;
-        RestrictAddressFamilies = [ "AF_INET" "AF_INET6" ];
+        RestrictAddressFamilies = [
+          "AF_INET"
+          "AF_INET6"
+        ];
         RestrictNamespaces = true;
         RestrictRealtime = true;
         RestrictSUIDSGID = true;
         SystemCallArchitectures = "native";
         SystemCallErrorNumber = "EPERM";
-        SystemCallFilter = [ "@system-service" "~@privileged @resources" ];
+        SystemCallFilter = [
+          "@system-service"
+          "~@privileged @resources"
+        ];
       };
     };
   };
