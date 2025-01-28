@@ -1,17 +1,19 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, rocmUpdateScript
-, pkg-config
-, cmake
-, xxd
-, rocm-device-libs
-, rocm-thunk
-, libelf
-, libdrm
-, numactl
-, valgrind
-, libxml2
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  fetchpatch,
+  rocmUpdateScript,
+  pkg-config,
+  cmake,
+  xxd,
+  rocm-device-libs,
+  rocm-thunk,
+  elfutils,
+  libdrm,
+  numactl,
+  valgrind,
+  libxml2,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -35,11 +37,20 @@ stdenv.mkDerivation (finalAttrs: {
 
   buildInputs = [
     rocm-thunk
-    libelf
+    elfutils
     libdrm
     numactl
     valgrind
     libxml2
+  ];
+
+  patches = [
+    (fetchpatch {
+      name = "extend-isa-compatibility-check.patch";
+      url = "https://salsa.debian.org/rocm-team/rocr-runtime/-/raw/076026d43bbee7f816b81fea72f984213a9ff961/debian/patches/0004-extend-isa-compatibility-check.patch";
+      hash = "sha256-cC030zVGS4kNXwaztv5cwfXfVwOldpLGV9iYgEfPEnY=";
+      stripLen = 1;
+    })
   ];
 
   postPatch = ''
@@ -69,6 +80,8 @@ stdenv.mkDerivation (finalAttrs: {
     license = with licenses; [ ncsa ];
     maintainers = with maintainers; [ lovesegfault ] ++ teams.rocm.members;
     platforms = platforms.linux;
-    broken = versions.minor finalAttrs.version != versions.minor stdenv.cc.version || versionAtLeast finalAttrs.version "7.0.0";
+    broken =
+      versions.minor finalAttrs.version != versions.minor stdenv.cc.version
+      || versionAtLeast finalAttrs.version "7.0.0";
   };
 })

@@ -1,38 +1,47 @@
-{ lib
-, rustPlatform
-, fetchFromGitHub
-, stdenv
-, python3
-, nix-update-script
+{
+  lib,
+  rustPlatform,
+  fetchFromGitHub,
+  python3,
+  nix-update-script,
 }:
 
 rustPlatform.buildRustPackage rec {
   pname = "nickel";
-  version = "1.5.0";
+  version = "1.9.1";
 
   src = fetchFromGitHub {
     owner = "tweag";
     repo = "nickel";
-    rev = "refs/tags/${version}";
-    hash = "sha256-tb0nIBj/5nb0WbkceL7Rt1Rs0Qjy5/2leSOofF4zhTY=";
+    tag = version;
+    hash = "sha256-oOcVbAWNj0iVC3128QF4lKYfZbasqegwIfzv7qD8fDs=";
   };
 
-  cargoLock = {
-    lockFile = ./Cargo.lock;
-    outputHashes = {
-      "topiary-core-0.3.0" = "sha256-2oVdtBcH1hF+p3PixBOljHXvGX2YCoRzA/vlBDvN7fE=";
-      "topiary-queries-0.3.0" = "sha256-1leQLRohX0iDiOOO96ETM2L3yOElW8OwR5IcrsoxfOo=";
-      "tree-sitter-nickel-0.1.0" = "sha256-HyHdameEgET5UXKMgw7EJvZsJxToc9Qz26XHvc5qmU0=";
-    };
-  };
+  cargoHash = "sha256-y5ZV6aLXzFZg41ZHGSSL6t+BN30EBHKzXuT6478hQUY=";
 
-  cargoBuildFlags = [ "-p nickel-lang-cli" "-p nickel-lang-lsp" ];
+  cargoBuildFlags = [
+    "-p nickel-lang-cli"
+    "-p nickel-lang-lsp"
+  ];
 
   nativeBuildInputs = [
     python3
   ];
 
-  outputs = [ "out" "nls" ];
+  outputs = [
+    "out"
+    "nls"
+  ];
+
+  # This fixes the way comrak is defined as a dependency, without the sed the build fails:
+  #
+  # cargo metadata failure: error: Package `nickel-lang-core v0.10.0
+  # (/build/source/core)` does not have feature `comrak`. It has an optional
+  # dependency with that name, but that dependency uses the "dep:" syntax in
+  # the features table, so it does not have an implicit feature with that name.
+  preBuild = ''
+    sed -i 's/dep:comrak/comrak/' core/Cargo.toml
+  '';
 
   postInstall = ''
     mkdir -p $nls/bin
@@ -54,7 +63,10 @@ rustPlatform.buildRustPackage rec {
     '';
     changelog = "https://github.com/tweag/nickel/blob/${version}/RELEASES.md";
     license = licenses.mit;
-    maintainers = with maintainers; [ AndersonTorres felschr matthiasbeyer ];
+    maintainers = with maintainers; [
+      felschr
+      matthiasbeyer
+    ];
     mainProgram = "nickel";
   };
 }

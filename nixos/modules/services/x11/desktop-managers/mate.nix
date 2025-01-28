@@ -1,4 +1,10 @@
-{ config, lib, pkgs, utils, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  utils,
+  ...
+}:
 
 with lib;
 
@@ -16,33 +22,33 @@ in
       enable = mkOption {
         type = types.bool;
         default = false;
-        description = lib.mdDoc "Enable the MATE desktop environment";
+        description = "Enable the MATE desktop environment";
       };
 
-      debug = mkEnableOption (lib.mdDoc "mate-session debug messages");
+      debug = mkEnableOption "mate-session debug messages";
 
       extraPanelApplets = mkOption {
         default = [ ];
         example = literalExpression "with pkgs.mate; [ mate-applets ]";
         type = types.listOf types.package;
-        description = lib.mdDoc "Extra applets to add to mate-panel.";
+        description = "Extra applets to add to mate-panel.";
       };
 
       extraCajaExtensions = mkOption {
         default = [ ];
         example = lib.literalExpression "with pkgs.mate; [ caja-extensions ]";
         type = types.listOf types.package;
-        description = lib.mdDoc "Extra extensions to add to caja.";
+        description = "Extra extensions to add to caja.";
       };
 
-      enableWaylandSession = mkEnableOption (lib.mdDoc "MATE Wayland session");
+      enableWaylandSession = mkEnableOption "MATE Wayland session";
     };
 
     environment.mate.excludePackages = mkOption {
-      default = [];
+      default = [ ];
       example = literalExpression "[ pkgs.mate.mate-terminal pkgs.mate.pluma ]";
       type = types.listOf types.package;
-      description = lib.mdDoc "Which MATE packages to exclude from the default environment";
+      description = "Which MATE packages to exclude from the default environment";
     };
 
   };
@@ -56,10 +62,10 @@ in
       # Debugging
       environment.sessionVariables.MATE_SESSION_DEBUG = mkIf cfg.debug "1";
 
-      environment.systemPackages = utils.removePackagesByName
-        (pkgs.mate.basePackages ++
-        pkgs.mate.extraPackages ++
-        [
+      environment.systemPackages = utils.removePackagesByName (
+        pkgs.mate.basePackages
+        ++ pkgs.mate.extraPackages
+        ++ [
           (pkgs.mate.caja-with-extensions.override {
             extensions = cfg.extraCajaExtensions;
           })
@@ -72,8 +78,8 @@ in
           pkgs.shared-mime-info
           pkgs.xdg-user-dirs # Update user dirs as described in https://freedesktop.org/wiki/Software/xdg-user-dirs/
           pkgs.yelp # for 'Contents' in 'Help' menus
-        ])
-        config.environment.mate.excludePackages;
+        ]
+      ) config.environment.mate.excludePackages;
 
       programs.dconf.enable = true;
       # Shell integration for VTE terminals
@@ -84,11 +90,12 @@ in
       programs.system-config-printer.enable = (mkIf config.services.printing.enable (mkDefault true));
 
       services.gnome.at-spi2-core.enable = true;
+      services.gnome.glib-networking.enable = true;
       services.gnome.gnome-keyring.enable = true;
       services.udev.packages = [ pkgs.mate.mate-settings-daemon ];
       services.gvfs.enable = true;
       services.upower.enable = config.powerManagement.enable;
-      services.xserver.libinput.enable = mkDefault true;
+      services.libinput.enable = mkDefault true;
 
       security.pam.services.mate-screensaver.unixAuth = true;
 

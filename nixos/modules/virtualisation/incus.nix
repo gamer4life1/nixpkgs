@@ -9,7 +9,7 @@ let
   cfg = config.virtualisation.incus;
   preseedFormat = pkgs.formats.yaml { };
 
-  serverBinPath = ''${pkgs.qemu_kvm}/libexec:${
+  serverBinPath = ''/run/wrappers/bin:${pkgs.qemu_kvm}/libexec:${
     lib.makeBinPath (
       with pkgs;
       [
@@ -33,29 +33,46 @@ let
         gzip
         iproute2
         iptables
+        iw
         kmod
+        libnvidia-container
+        libxfs
         lvm2
+        lxcfs
         minio
+        minio-client
         nftables
-        qemu_kvm
         qemu-utils
+        qemu_kvm
         rsync
+        squashfs-tools-ng
         squashfsTools
+        sshfs
+        swtpm
         systemd
         thin-provisioning-tools
         util-linux
         virtiofsd
+        xdelta
         xz
+      ]
+      ++ lib.optionals (lib.versionAtLeast cfg.package.version "6.3.0") [
+        skopeo
+        umoci
+      ]
+      ++ lib.optionals config.security.apparmor.enable [
+        apparmor-bin-utils
 
         (writeShellScriptBin "apparmor_parser" ''
           exec '${apparmor-parser}/bin/apparmor_parser' -I '${apparmor-profiles}/etc/apparmor.d' "$@"
         '')
       ]
+      ++ lib.optionals config.services.ceph.client.enable [ ceph-client ]
+      ++ lib.optionals config.virtualisation.vswitch.enable [ config.virtualisation.vswitch.package ]
       ++ lib.optionals config.boot.zfs.enabled [
         config.boot.zfs.package
         "${config.boot.zfs.package}/lib/udev"
       ]
-      ++ lib.optionals config.virtualisation.vswitch.enable [ config.virtualisation.vswitch.package ]
     )
   }'';
 
@@ -65,34 +82,74 @@ let
     fdSize2MB = true;
   };
   ovmf-prefix = if pkgs.stdenv.hostPlatform.isAarch64 then "AAVMF" else "OVMF";
-  ovmf = pkgs.linkFarm "incus-ovmf" [
-    # 2MB must remain the default or existing VMs will fail to boot. New VMs will prefer 4MB
-    {
-      name = "OVMF_CODE.fd";
-      path = "${OVMF2MB.fd}/FV/${ovmf-prefix}_CODE.fd";
-    }
-    {
-      name = "OVMF_VARS.fd";
-      path = "${OVMF2MB.fd}/FV/${ovmf-prefix}_VARS.fd";
-    }
-    {
-      name = "OVMF_VARS.ms.fd";
-      path = "${OVMF2MB.fd}/FV/${ovmf-prefix}_VARS.fd";
-    }
+  ovmf = pkgs.linkFarm "incus-ovmf" (
+    [
+      # 2MB must remain the default or existing VMs will fail to boot. New VMs will prefer 4MB
+      {
+        name = "OVMF_CODE.fd";
+        path = "${OVMF2MB.fd}/FV/${ovmf-prefix}_CODE.fd";
+      }
+      {
+        name = "OVMF_VARS.fd";
+        path = "${OVMF2MB.fd}/FV/${ovmf-prefix}_VARS.fd";
+      }
+      {
+        name = "OVMF_VARS.ms.fd";
+        path = "${OVMF2MB.fd}/FV/${ovmf-prefix}_VARS.fd";
+      }
 
+      {
+        name = "OVMF_CODE.4MB.fd";
+        path = "${pkgs.OVMFFull.fd}/FV/${ovmf-prefix}_CODE.fd";
+      }
+      {
+        name = "OVMF_VARS.4MB.fd";
+        path = "${pkgs.OVMFFull.fd}/FV/${ovmf-prefix}_VARS.fd";
+      }
+      {
+        name = "OVMF_VARS.4MB.ms.fd";
+        path = "${pkgs.OVMFFull.fd}/FV/${ovmf-prefix}_VARS.fd";
+      }
+    ]
+    ++ lib.optionals pkgs.stdenv.hostPlatform.isx86_64 [
+      {
+        name = "seabios.bin";
+        path = "${pkgs.seabios-qemu}/share/seabios/bios.bin";
+      }
+    ]
+  );
+
+  environment = lib.mkMerge [
     {
-      name = "OVMF_CODE.4MB.fd";
-      path = "${pkgs.OVMFFull.fd}/FV/${ovmf-prefix}_CODE.fd";
+      INCUS_EDK2_PATH = ovmf;
+      INCUS_LXC_HOOK = "${cfg.lxcPackage}/share/lxc/hooks";
+      INCUS_LXC_TEMPLATE_CONFIG = "${pkgs.lxcfs}/share/lxc/config";
+      INCUS_USBIDS_PATH = "${pkgs.hwdata}/share/hwdata/usb.ids";
+      PATH = lib.mkForce serverBinPath;
     }
-    {
-      name = "OVMF_VARS.4MB.fd";
-      path = "${pkgs.OVMFFull.fd}/FV/${ovmf-prefix}_VARS.fd";
-    }
-    {
-      name = "OVMF_VARS.4MB.ms.fd";
-      path = "${pkgs.OVMFFull.fd}/FV/${ovmf-prefix}_VARS.fd";
-    }
+    (lib.mkIf (cfg.ui.enable) { "INCUS_UI" = cfg.ui.package; })
   ];
+
+  incus-startup = pkgs.writeShellScript "incus-startup" ''
+    case "$1" in
+        start)
+          systemctl is-active incus.service -q && exit 0
+          exec incusd activateifneeded
+        ;;
+
+        stop)
+          systemctl is-active incus.service -q || exit 0
+          exec incusd shutdown
+        ;;
+
+        *)
+          echo "unknown argument \`$1'" >&2
+          exit 1
+        ;;
+    esac
+
+    exit 0
+  '';
 in
 {
   meta = {
@@ -107,17 +164,33 @@ in
         Users in the "incus-admin" group can interact with
         the daemon (e.g. to start or stop containers) using the
         {command}`incus` command line tool, among others.
+        Users in the "incus" group can also interact with
+        the daemon, but with lower permissions
+        (i.e. administrative operations are forbidden).
       '';
 
       package = lib.mkPackageOption pkgs "incus-lts" { };
 
-      lxcPackage = lib.mkPackageOption pkgs "lxc" { };
+      lxcPackage = lib.mkOption {
+        type = lib.types.package;
+        default = config.virtualisation.lxc.package;
+        defaultText = lib.literalExpression "config.virtualisation.lxc.package";
+        description = "The lxc package to use.";
+      };
 
       clientPackage = lib.mkOption {
         type = lib.types.package;
         default = cfg.package.client;
         defaultText = lib.literalExpression "config.virtualisation.incus.package.client";
         description = "The incus client package to use. This package is added to PATH.";
+      };
+
+      softDaemonRestart = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = ''
+          Allow for incus.service to be stopped without affecting running instances.
+        '';
       };
 
       preseed = lib.mkOption {
@@ -265,6 +338,8 @@ in
     systemd.services.incus = {
       description = "Incus Container and Virtual Machine Management Daemon";
 
+      inherit environment;
+
       wantedBy = lib.mkIf (!cfg.socketActivation) [ "multi-user.target" ];
       after = [
         "network-online.target"
@@ -279,20 +354,10 @@ in
 
       wants = [ "network-online.target" ];
 
-      environment = lib.mkMerge [
-        {
-          INCUS_LXC_TEMPLATE_CONFIG = "${pkgs.lxcfs}/share/lxc/config";
-          INCUS_OVMF_PATH = ovmf;
-          INCUS_USBIDS_PATH = "${pkgs.hwdata}/share/hwdata/usb.ids";
-          PATH = lib.mkForce serverBinPath;
-        }
-        (lib.mkIf (cfg.ui.enable) { "INCUS_UI" = cfg.ui.package; })
-      ];
-
       serviceConfig = {
         ExecStart = "${cfg.package}/bin/incusd --group incus-admin";
         ExecStartPost = "${cfg.package}/bin/incusd waitready --timeout=${cfg.startTimeout}";
-        ExecStop = "${cfg.package}/bin/incus admin shutdown";
+        ExecStop = lib.optionalString (!cfg.softDaemonRestart) "${cfg.package}/bin/incus admin shutdown";
 
         KillMode = "process"; # when stopping, leave the containers alone
         Delegate = "yes";
@@ -307,6 +372,49 @@ in
       };
     };
 
+    systemd.services.incus-user = {
+      description = "Incus Container and Virtual Machine Management User Daemon";
+
+      inherit environment;
+
+      after = [
+        "incus.service"
+        "incus-user.socket"
+      ];
+
+      requires = [
+        "incus-user.socket"
+      ];
+
+      serviceConfig = {
+        ExecStart = "${cfg.package}/bin/incus-user --group incus";
+
+        Restart = "on-failure";
+      };
+    };
+
+    systemd.services.incus-startup = lib.mkIf cfg.softDaemonRestart {
+      description = "Incus Instances Startup/Shutdown";
+
+      inherit environment;
+
+      after = [
+        "incus.service"
+        "incus.socket"
+      ];
+      requires = [ "incus.socket" ];
+      wantedBy = config.systemd.services.incus.wantedBy;
+
+      serviceConfig = {
+        ExecStart = "${incus-startup} start";
+        ExecStop = "${incus-startup} stop";
+        RemainAfterExit = true;
+        TimeoutStartSec = "600s";
+        TimeoutStopSec = "600s";
+        Type = "oneshot";
+      };
+    };
+
     systemd.sockets.incus = {
       description = "Incus UNIX socket";
       wantedBy = [ "sockets.target" ];
@@ -315,6 +423,17 @@ in
         ListenStream = "/var/lib/incus/unix.socket";
         SocketMode = "0660";
         SocketGroup = "incus-admin";
+      };
+    };
+
+    systemd.sockets.incus-user = {
+      description = "Incus user UNIX socket";
+      wantedBy = [ "sockets.target" ];
+
+      socketConfig = {
+        ListenStream = "/var/lib/incus/unix.socket.user";
+        SocketMode = "0660";
+        SocketGroup = "incus";
       };
     };
 
@@ -336,6 +455,7 @@ in
       };
     };
 
+    users.groups.incus = { };
     users.groups.incus-admin = { };
 
     users.users.root = {

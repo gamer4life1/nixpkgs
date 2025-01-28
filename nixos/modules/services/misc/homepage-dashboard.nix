@@ -1,7 +1,8 @@
-{ config
-, pkgs
-, lib
-, ...
+{
+  config,
+  pkgs,
+  lib,
+  ...
 }:
 
 let
@@ -12,20 +13,20 @@ in
 {
   options = {
     services.homepage-dashboard = {
-      enable = lib.mkEnableOption (lib.mdDoc "Homepage Dashboard, a highly customizable application dashboard");
+      enable = lib.mkEnableOption "Homepage Dashboard, a highly customizable application dashboard";
 
       package = lib.mkPackageOption pkgs "homepage-dashboard" { };
 
       openFirewall = lib.mkOption {
         type = lib.types.bool;
         default = false;
-        description = lib.mdDoc "Open ports in the firewall for Homepage.";
+        description = "Open ports in the firewall for Homepage.";
       };
 
       listenPort = lib.mkOption {
         type = lib.types.int;
         default = 8082;
-        description = lib.mdDoc "Port for Homepage to bind to.";
+        description = "Port for Homepage to bind to.";
       };
 
       environmentFile = lib.mkOption {
@@ -44,7 +45,7 @@ in
 
       customCSS = lib.mkOption {
         type = lib.types.lines;
-        description = lib.mdDoc ''
+        description = ''
           Custom CSS for styling Homepage.
 
           See https://gethomepage.dev/latest/configs/custom-css-js/.
@@ -54,7 +55,7 @@ in
 
       customJS = lib.mkOption {
         type = lib.types.lines;
-        description = lib.mdDoc ''
+        description = ''
           Custom Javascript for Homepage.
 
           See https://gethomepage.dev/latest/configs/custom-css-js/.
@@ -64,7 +65,7 @@ in
 
       bookmarks = lib.mkOption {
         inherit (settingsFormat) type;
-        description = lib.mdDoc ''
+        description = ''
           Homepage bookmarks configuration.
 
           See https://gethomepage.dev/latest/configs/bookmarks/.
@@ -73,12 +74,26 @@ in
         example = [
           {
             Developer = [
-              { Github = [{ abbr = "GH"; href = "https://github.com/"; }]; }
+              {
+                Github = [
+                  {
+                    abbr = "GH";
+                    href = "https://github.com/";
+                  }
+                ];
+              }
             ];
           }
           {
             Entertainment = [
-              { YouTube = [{ abbr = "YT"; href = "https://youtube.com/"; }]; }
+              {
+                YouTube = [
+                  {
+                    abbr = "YT";
+                    href = "https://youtube.com/";
+                  }
+                ];
+              }
             ];
           }
         ];
@@ -87,7 +102,7 @@ in
 
       services = lib.mkOption {
         inherit (settingsFormat) type;
-        description = lib.mdDoc ''
+        description = ''
           Homepage services configuration.
 
           See https://gethomepage.dev/latest/configs/services/.
@@ -120,7 +135,7 @@ in
 
       widgets = lib.mkOption {
         inherit (settingsFormat) type;
-        description = lib.mdDoc ''
+        description = ''
           Homepage widgets configuration.
 
           See https://gethomepage.dev/latest/configs/service-widgets/.
@@ -146,7 +161,7 @@ in
 
       kubernetes = lib.mkOption {
         inherit (settingsFormat) type;
-        description = lib.mdDoc ''
+        description = ''
           Homepage kubernetes configuration.
 
           See https://gethomepage.dev/latest/configs/kubernetes/.
@@ -156,7 +171,7 @@ in
 
       docker = lib.mkOption {
         inherit (settingsFormat) type;
-        description = lib.mdDoc ''
+        description = ''
           Homepage docker configuration.
 
           See https://gethomepage.dev/latest/configs/docker/.
@@ -166,7 +181,7 @@ in
 
       settings = lib.mkOption {
         inherit (settingsFormat) type;
-        description = lib.mdDoc ''
+        description = ''
           Homepage settings.
 
           See https://gethomepage.dev/latest/configs/settings/.
@@ -183,20 +198,22 @@ in
       # then default to "unmanaged" configuration which is manually updated in
       # var/lib/homepage-dashboard. This is to maintain backwards compatibility, and should be
       # deprecated in a future release.
-      managedConfig = !(
-        cfg.bookmarks == [ ] &&
-        cfg.customCSS == "" &&
-        cfg.customJS == "" &&
-        cfg.docker == { } &&
-        cfg.kubernetes == { } &&
-        cfg.services == [ ] &&
-        cfg.settings == { } &&
-        cfg.widgets == [ ]
-      );
+      managedConfig =
+        !(
+          cfg.bookmarks == [ ]
+          && cfg.customCSS == ""
+          && cfg.customJS == ""
+          && cfg.docker == { }
+          && cfg.kubernetes == { }
+          && cfg.services == [ ]
+          && cfg.settings == { }
+          && cfg.widgets == [ ]
+        );
 
       configDir = if managedConfig then "/etc/homepage-dashboard" else "/var/lib/homepage-dashboard";
 
-      msg = "using unmanaged configuration for homepage-dashboard is deprecated and will be removed"
+      msg =
+        "using unmanaged configuration for homepage-dashboard is deprecated and will be removed"
         + " in 24.05. please see the NixOS documentation for `services.homepage-dashboard' and add"
         + " your bookmarks, services, widgets, and other configuration using the options provided.";
     in
@@ -209,7 +226,8 @@ in
 
         "homepage-dashboard/bookmarks.yaml".source = settingsFormat.generate "bookmarks.yaml" cfg.bookmarks;
         "homepage-dashboard/docker.yaml".source = settingsFormat.generate "docker.yaml" cfg.docker;
-        "homepage-dashboard/kubernetes.yaml".source = settingsFormat.generate "kubernetes.yaml" cfg.kubernetes;
+        "homepage-dashboard/kubernetes.yaml".source =
+          settingsFormat.generate "kubernetes.yaml" cfg.kubernetes;
         "homepage-dashboard/services.yaml".source = settingsFormat.generate "services.yaml" cfg.services;
         "homepage-dashboard/settings.yaml".source = settingsFormat.generate "settings.yaml" cfg.settings;
         "homepage-dashboard/widgets.yaml".source = settingsFormat.generate "widgets.yaml" cfg.widgets;
@@ -222,6 +240,7 @@ in
 
         environment = {
           HOMEPAGE_CONFIG_DIR = configDir;
+          NIXPKGS_HOMEPAGE_CACHE_DIR = "/var/cache/homepage-dashboard";
           PORT = toString cfg.listenPort;
           LOG_TARGETS = lib.mkIf managedConfig "stdout";
         };
@@ -231,9 +250,18 @@ in
           DynamicUser = true;
           EnvironmentFile = lib.mkIf (cfg.environmentFile != null) cfg.environmentFile;
           StateDirectory = lib.mkIf (!managedConfig) "homepage-dashboard";
+          CacheDirectory = "homepage-dashboard";
           ExecStart = lib.getExe cfg.package;
           Restart = "on-failure";
         };
+
+        preStart = ''
+          # Related:
+          # * https://github.com/NixOS/nixpkgs/issues/346016 ("homepage-dashboard: cache dir is not cleared upon version upgrade")
+          # * https://github.com/gethomepage/homepage/discussions/4560 ("homepage NixOS package does not clear cache on upgrade leaving broken state")
+          # * https://github.com/vercel/next.js/discussions/58864 ("Feature Request: Allow configuration of cache dir")
+          rm -rf "$NIXPKGS_HOMEPAGE_CACHE_DIR"/*
+        '';
       };
 
       networking.firewall = lib.mkIf cfg.openFirewall {

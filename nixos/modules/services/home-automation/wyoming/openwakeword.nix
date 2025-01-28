@@ -1,22 +1,20 @@
-{ config
-, lib
-, pkgs
-, ...
+{
+  config,
+  lib,
+  pkgs,
+  utils,
+  ...
 }:
 
 let
   cfg = config.services.wyoming.openwakeword;
 
   inherit (lib)
-    concatStringsSep
-    concatMapStringsSep
-    escapeShellArgs
+    concatMap
     mkOption
-    mdDoc
     mkEnableOption
     mkIf
     mkPackageOption
-    mkRemovedOptionModule
     types
     ;
 
@@ -24,17 +22,14 @@ let
     toString
     ;
 
+  inherit (utils)
+    escapeSystemdExecArgs
+    ;
 in
 
 {
-  imports = [
-    (mkRemovedOptionModule [ "services" "wyoming" "openwakeword" "models" ] "Configuring models has been removed, they are now dynamically discovered and loaded at runtime")
-  ];
-
-  meta.buildDocsInSandbox = false;
-
   options.services.wyoming.openwakeword = with types; {
-    enable = mkEnableOption (mdDoc "Wyoming openWakeWord server");
+    enable = mkEnableOption "Wyoming openWakeWord server";
 
     package = mkPackageOption pkgs "wyoming-openwakeword" { };
 
@@ -42,15 +37,15 @@ in
       type = strMatching "^(tcp|unix)://.*$";
       default = "tcp://0.0.0.0:10400";
       example = "tcp://192.0.2.1:5000";
-      description = mdDoc ''
+      description = ''
         URI to bind the wyoming server to.
       '';
     };
 
     customModelsDirectories = mkOption {
       type = listOf types.path;
-      default = [];
-      description = lib.mdDoc ''
+      default = [ ];
+      description = ''
         Paths to directories with custom wake word models (*.tflite model files).
       '';
     };
@@ -68,16 +63,16 @@ in
         "hey_rhasspy"
         "ok_nabu"
       ];
-      description = mdDoc ''
+      description = ''
         List of wake word models to preload after startup.
       '';
     };
 
     threshold = mkOption {
-      type = float;
+      type = numbers.between 0.0 1.0;
       default = 0.5;
-      description = mdDoc ''
-        Activation threshold (0-1), where higher means fewer activations.
+      description = ''
+        Activation threshold (0.0-1.0), where higher means fewer activations.
 
         See trigger level for the relationship between activations and
         wake word detections.
@@ -86,9 +81,9 @@ in
     };
 
     triggerLevel = mkOption {
-      type = int;
+      type = ints.unsigned;
       default = 1;
-      description = mdDoc ''
+      description = ''
         Number of activations before a detection is registered.
 
         A higher trigger level means fewer detections.
@@ -99,16 +94,18 @@ in
     extraArgs = mkOption {
       type = listOf str;
       default = [ ];
-      description = mdDoc ''
+      description = ''
         Extra arguments to pass to the server commandline.
       '';
-      apply = escapeShellArgs;
     };
   };
 
   config = mkIf cfg.enable {
     systemd.services."wyoming-openwakeword" = {
       description = "Wyoming openWakeWord server";
+      wants = [
+        "network-online.target"
+      ];
       after = [
         "network-online.target"
       ];
@@ -119,15 +116,26 @@ in
         DynamicUser = true;
         User = "wyoming-openwakeword";
         # https://github.com/home-assistant/addons/blob/master/openwakeword/rootfs/etc/s6-overlay/s6-rc.d/openwakeword/run
-        ExecStart = concatStringsSep " " [
-          "${cfg.package}/bin/wyoming-openwakeword"
-          "--uri ${cfg.uri}"
-          (concatMapStringsSep " " (model: "--preload-model ${model}") cfg.preloadModels)
-          (concatMapStringsSep " " (dir: "--custom-model-dir ${toString dir}") cfg.customModelsDirectories)
-          "--threshold ${cfg.threshold}"
-          "--trigger-level ${cfg.triggerLevel}"
-          "${cfg.extraArgs}"
-        ];
+        ExecStart = escapeSystemdExecArgs (
+          [
+            (lib.getExe cfg.package)
+            "--uri"
+            cfg.uri
+            "--threshold"
+            cfg.threshold
+            "--trigger-level"
+            cfg.triggerLevel
+          ]
+          ++ (concatMap (model: [
+            "--preload-model"
+            model
+          ]) cfg.preloadModels)
+          ++ (concatMap (dir: [
+            "--custom-model-dir"
+            (toString dir)
+          ]) cfg.customModelsDirectories)
+          ++ cfg.extraArgs
+        );
         CapabilityBoundingSet = "";
         DeviceAllow = "";
         DevicePolicy = "closed";

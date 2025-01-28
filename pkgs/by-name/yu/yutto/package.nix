@@ -1,36 +1,40 @@
-{ lib
-, python3Packages
-, fetchFromGitHub
-, ffmpeg
-, nix-update-script
+{
+  lib,
+  python3Packages,
+  fetchFromGitHub,
+  ffmpeg,
+  nix-update-script,
 }:
 
-python3Packages.buildPythonApplication {
+python3Packages.buildPythonApplication rec {
   pname = "yutto";
-  version = "2.0.0b36-unstable-2024-03-04";
-  format = "pyproject";
+  version = "2.0.0-rc.7";
+  pyproject = true;
 
   disabled = python3Packages.pythonOlder "3.9";
+  pythonRelaxDeps = true;
 
   src = fetchFromGitHub {
     owner = "yutto-dev";
     repo = "yutto";
-    rev = "f2d34f9e2a2d45ed8ed6ae4c2bf91af248da27f0";
-    hash = "sha256-/zTQt+/sCjnQPt8YyKvRXpWVpN/yi2LrhpFH4FPbeOc=";
+    tag = "v${version}";
+    hash = "sha256-yNAQmpR65FSCbciSSdO2eHUJcE6Dl8J4dqq6GHt5NDQ=";
   };
 
-  nativeBuildInputs = with python3Packages; [
-    poetry-core
-  ];
+  build-system = with python3Packages; [ hatchling ];
 
-  propagatedBuildInputs = with python3Packages; [
-    httpx
-    aiofiles
-    biliass
-    dict2xml
-    colorama
-    typing-extensions
-  ] ++ (with httpx.optional-dependencies; http2 ++ socks);
+  dependencies =
+    with python3Packages;
+    [
+      httpx
+      aiofiles
+      biliass
+      dict2xml
+      colorama
+      typing-extensions
+      pydantic
+    ]
+    ++ (with httpx.optional-dependencies; http2 ++ socks);
 
   preFixup = ''
     makeWrapperArgs+=(--prefix PATH : ${lib.makeBinPath [ ffmpeg ]})
@@ -38,10 +42,15 @@ python3Packages.buildPythonApplication {
 
   pythonImportsCheck = [ "yutto" ];
 
-  passthru.updateScript = nix-update-script { };
+  passthru.updateScript = nix-update-script {
+    extraArgs = [
+      "--version"
+      "unstable"
+    ];
+  };
 
   meta = with lib; {
-    description = "A Bilibili downloader";
+    description = "Bilibili downloader";
     homepage = "https://github.com/yutto-dev/yutto";
     license = licenses.gpl3Only;
     maintainers = with maintainers; [ linsui ];

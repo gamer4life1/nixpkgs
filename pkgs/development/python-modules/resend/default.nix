@@ -1,15 +1,17 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, setuptools
-, pythonOlder
-, pytestCheckHook
-, requests
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  pythonOlder,
+  pytestCheckHook,
+  requests,
+  typing-extensions,
 }:
 
 buildPythonPackage rec {
   pname = "resend";
-  version = "0.8.0";
+  version = "2.5.1";
   pyproject = true;
 
   disabled = pythonOlder "3.7";
@@ -17,25 +19,20 @@ buildPythonPackage rec {
   src = fetchFromGitHub {
     owner = "resend";
     repo = "resend-python";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-6cQtI3it2AS8UdT83fp3y3IcbjSyPmBlQuymN74fBNo=";
+    tag = "v${version}";
+    hash = "sha256-KOZJiJYqUdQYJPyxoNJ8sMUR1gIZF8+i9m+cAQokByI=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     requests
+    typing-extensions
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "resend"
-  ];
+  pythonImportsCheck = [ "resend" ];
 
   meta = with lib; {
     description = "SDK for Resend";

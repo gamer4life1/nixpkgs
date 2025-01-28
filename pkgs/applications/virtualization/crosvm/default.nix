@@ -1,31 +1,62 @@
-{ lib, rustPlatform, fetchgit
-, pkg-config, protobuf, python3, wayland-scanner
-, libcap, libdrm, libepoxy, minijail, virglrenderer, wayland, wayland-protocols
+{
+  lib,
+  rustPlatform,
+  fetchgit,
+  fetchpatch,
+  pkg-config,
+  protobuf,
+  python3,
+  wayland-scanner,
+  libcap,
+  libdrm,
+  libepoxy,
+  minijail,
+  virglrenderer,
+  wayland,
+  wayland-protocols,
+  pkgsCross,
 }:
 
 rustPlatform.buildRustPackage rec {
   pname = "crosvm";
-  version = "123.0";
+  version = "130.0";
 
   src = fetchgit {
     url = "https://chromium.googlesource.com/chromiumos/platform/crosvm";
-    # This is actually one commit before release 123, because the final
-    # commit breaks the build and gets reverted in future releases.
-    rev = "7c75ad6185893b4cc26676b6a0eb9fbdf9ed5b72";
-    hash = "sha256-1Jj8TAgYxIGLJeTtiZBcXw0n/mTbh/uC8EFM0IYD5VY=";
+    rev = "9d42f918373f962b7d035ff52a1629e184cb496e";
+    hash = "sha256-h8nAZ4kTidblKNvugEEZUorBthjGi0FmImcBwYy4EHQ=";
     fetchSubmodules = true;
   };
 
+  patches = [
+    (fetchpatch {
+      name = "cross-domain.patch";
+      url = "https://chromium.googlesource.com/chromiumos/platform/crosvm/+/60053cdf0b360a03084292b39120365fff65d410%5E%21/?format=TEXT";
+      decode = "base64 -d";
+      hash = "sha256-U5eOxuAtVLjJ+8h16lmbJYNxsP/AOEv/1ec4WlUxP2E=";
+    })
+  ];
+
   separateDebugInfo = true;
 
-  cargoHash = "sha256-f3w+msG7m6valf/I1puMrpiVgk0J1bdyp+rw3KQ/7ys=";
+  cargoHash = "sha256-FvDJhmrSBShxRTpc23C0jEk9YRbtGyYgC1Z8ekxNnb8=";
 
   nativeBuildInputs = [
-    pkg-config protobuf python3 rustPlatform.bindgenHook wayland-scanner
+    pkg-config
+    protobuf
+    python3
+    rustPlatform.bindgenHook
+    wayland-scanner
   ];
 
   buildInputs = [
-    libcap libdrm libepoxy minijail virglrenderer wayland wayland-protocols
+    libcap
+    libdrm
+    libepoxy
+    minijail
+    virglrenderer
+    wayland
+    wayland-protocols
   ];
 
   preConfigure = ''
@@ -37,14 +68,22 @@ rustPlatform.buildRustPackage rec {
 
   buildFeatures = [ "virgl_renderer" ];
 
-  passthru.updateScript = ./update.py;
+  passthru = {
+    updateScript = ./update.py;
+    tests = {
+      musl = pkgsCross.musl64.crosvm;
+    };
+  };
 
   meta = with lib; {
-    description = "A secure virtual machine monitor for KVM";
+    description = "Secure virtual machine monitor for KVM";
     homepage = "https://crosvm.dev/";
     mainProgram = "crosvm";
     maintainers = with maintainers; [ qyliss ];
     license = licenses.bsd3;
-    platforms = [ "aarch64-linux" "x86_64-linux" ];
+    platforms = [
+      "aarch64-linux"
+      "x86_64-linux"
+    ];
   };
 }

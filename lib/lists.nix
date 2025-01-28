@@ -4,8 +4,9 @@
 { lib }:
 let
   inherit (lib.strings) toInt;
-  inherit (lib.trivial) compare min id warn;
+  inherit (lib.trivial) compare min id warn pipe;
   inherit (lib.attrsets) mapAttrs;
+  inherit (lib) max;
 in
 rec {
 
@@ -332,6 +333,54 @@ rec {
     :::
   */
   imap1 = f: list: genList (n: f (n + 1) (elemAt list n)) (length list);
+
+  /**
+    Filter a list for elements that satisfy a predicate function.
+    The predicate function is called with both the index and value for each element.
+    It must return `true`/`false` to include/exclude a given element in the result.
+    This function is strict in the result of the predicate function for each element.
+    This function has O(n) complexity.
+
+    Also see [`builtins.filter`](https://nixos.org/manual/nix/stable/language/builtins.html#builtins-filter) (available as `lib.lists.filter`),
+    which can be used instead when the index isn't needed.
+
+    # Inputs
+
+    `ipred`
+
+    : The predicate function, it takes two arguments:
+      - 1. (int): the index of the element.
+      - 2. (a): the value of the element.
+
+      It must return `true`/`false` to include/exclude a given element from the result.
+
+    `list`
+
+    : The list to filter using the predicate.
+
+    # Type
+    ```
+    ifilter0 :: (int -> a -> bool) -> [a] -> [a]
+    ```
+
+    # Examples
+    :::{.example}
+    ## `lib.lists.ifilter0` usage example
+
+    ```nix
+    ifilter0 (i: v: i == 0 || v > 2) [ 1 2 3 ]
+    => [ 1 3 ]
+    ```
+    :::
+  */
+  ifilter0 =
+    ipred:
+    input:
+    map (idx: elemAt input idx) (
+      filter (idx: ipred idx (elemAt input idx)) (
+        genList (x: x) (length input)
+      )
+    );
 
   /**
     Map and concatenate the result.
@@ -1282,35 +1331,48 @@ rec {
           pairs);
 
   /**
-    Compare two lists element-by-element.
+    Compare two lists element-by-element with a comparison function `cmp`.
+
+    List elements are compared pairwise in order by the provided comparison function `cmp`,
+    the first non-equal pair of elements determines the result.
+
+    :::{.note}
+    The `<` operator can also be used to compare lists using a boolean condition. (e.g. `[1 2] < [1 3]` is `true`).
+    See also [language operators](https://nix.dev/manual/nix/stable/language/operators#comparison) for more information.
+    :::
 
     # Inputs
 
     `cmp`
 
-    : 1\. Function argument
+    : The comparison function `a: b: ...` must return:
+      - `0` if `a` and `b` are equal
+      - `1` if `a` is greater than `b`
+      - `-1` if `a` is less than `b`
+
+      See [lib.compare](#function-library-lib.trivial.compare) for a an example implementation.
 
     `a`
 
-    : 2\. Function argument
+    : The first list
 
     `b`
 
-    : 3\. Function argument
+    : The second list
 
 
     # Examples
     :::{.example}
-    ## `lib.lists.compareLists` usage example
+    ## `lib.lists.compareLists` usage examples
 
     ```nix
-    compareLists compare [] []
+    compareLists lib.compare [] []
     => 0
-    compareLists compare [] [ "a" ]
+    compareLists lib.compare [] [ "a" ]
     => -1
-    compareLists compare [ "a" ] []
+    compareLists lib.compare [ "a" ] []
     => 1
-    compareLists compare [ "a" "b" ] [ "a" "c" ]
+    compareLists lib.compare [ "a" "b" ] [ "a" "c" ]
     => -1
     ```
 
@@ -1435,6 +1497,46 @@ rec {
   drop =
     count:
     list: sublist count (length list) list;
+
+  /**
+    Remove the last (at most) N elements of a list.
+
+
+    # Inputs
+
+    `count`
+
+    : Number of elements to drop
+
+    `list`
+
+    : Input list
+
+    # Type
+
+    ```
+    dropEnd :: Int -> [a] -> [a]
+    ```
+
+    # Examples
+
+    :::{.example}
+    ## `lib.lists.dropEnd` usage example
+
+    ```nix
+      dropEnd 2 [ "a" "b" "c" "d" ]
+      => [ "a" "b" ]
+      dropEnd 2 [ ]
+      => [ ]
+    ```
+    :::
+
+   */
+  dropEnd =
+    n: xs:
+      take
+        (max 0 (length xs - n))
+        xs;
 
   /**
     Whether the first list is a prefix of the second list.
@@ -1688,16 +1790,32 @@ rec {
     ## `lib.lists.crossLists` usage example
 
     ```nix
-    crossLists (x:y: "${toString x}${toString y}") [[1 2] [3 4]]
+    crossLists (x: y: "${toString x}${toString y}") [[1 2] [3 4]]
     => [ "13" "14" "23" "24" ]
     ```
 
+    The following function call is equivalent to the one deprecated above:
+
+    ```nix
+    mapCartesianProduct (x: "${toString x.a}${toString x.b}") { a = [1 2]; b = [3 4]; }
+    => [ "13" "14" "23" "24" ]
+    ```
     :::
   */
-  crossLists = warn
-    "lib.crossLists is deprecated, use lib.cartesianProductOfSets instead."
-    (f: foldl (fs: args: concatMap (f: map f args) fs) [f]);
+  crossLists = warn ''
+    lib.crossLists is deprecated, use lib.mapCartesianProduct instead.
 
+    For example, the following function call:
+
+    nix-repl> lib.crossLists (x: y: x+y) [[1 2] [3 4]]
+    [ 4 5 5 6 ]
+
+    Can now be replaced by the following one:
+
+    nix-repl> lib.mapCartesianProduct ({x,y}: x+y) { x = [1 2]; y = [3 4]; }
+    [ 4 5 5 6 ]
+    ''
+    (f: foldl (fs: args: concatMap (f: map f args) fs) [f]);
 
   /**
     Remove duplicate elements from the `list`. O(n^2) complexity.

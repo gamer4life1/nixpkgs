@@ -1,39 +1,42 @@
-{ lib
-, aiohttp
-, aioresponses
-, aiosqlite
-, async-timeout
-, attrs
-, buildPythonPackage
-, crccheck
-, cryptography
-, fetchFromGitHub
-, freezegun
-, importlib-resources
-, jsonschema
-, pycryptodome
-, pyserial-asyncio
-, pytest-asyncio
-, pytest-timeout
-, pytestCheckHook
-, pythonOlder
-, setuptools
-, typing-extensions
-, voluptuous
+{
+  lib,
+  stdenv,
+  aiohttp,
+  aioresponses,
+  aiosqlite,
+  async-timeout,
+  attrs,
+  buildPythonPackage,
+  crccheck,
+  cryptography,
+  fetchFromGitHub,
+  freezegun,
+  frozendict,
+  importlib-resources,
+  jsonschema,
+  pycryptodome,
+  pyserial-asyncio,
+  pytest-asyncio,
+  pytest-timeout,
+  pytestCheckHook,
+  pythonOlder,
+  setuptools,
+  typing-extensions,
+  voluptuous,
 }:
 
 buildPythonPackage rec {
   pname = "zigpy";
-  version = "0.63.5";
+  version = "0.74.0";
   pyproject = true;
 
-  disabled = pythonOlder "3.8";
+  disabled = pythonOlder "3.9";
 
   src = fetchFromGitHub {
     owner = "zigpy";
     repo = "zigpy";
-    rev = "refs/tags/${version}";
-    hash = "sha256-iZxHXxheyoA5vo0Pxojs7QE8rSyTpsYpJ6/OzDSZJ20=";
+    tag = version;
+    hash = "sha256-B0BjDldIzHGRKR79mqgJHbvYeDGY5EDxFKaD2Q+HMyo=";
   };
 
   postPatch = ''
@@ -42,26 +45,24 @@ buildPythonPackage rec {
       --replace-fail 'dynamic = ["version"]' 'version = "${version}"'
   '';
 
-  build-system = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  dependencies = [
-    attrs
-    aiohttp
-    aiosqlite
-    crccheck
-    cryptography
-    jsonschema
-    pyserial-asyncio
-    typing-extensions
-    pycryptodome
-    voluptuous
-  ] ++ lib.optionals (pythonOlder "3.9") [
-    importlib-resources
-  ] ++ lib.optionals (pythonOlder "3.11") [
-    async-timeout
-  ];
+  dependencies =
+    [
+      attrs
+      aiohttp
+      aiosqlite
+      crccheck
+      cryptography
+      frozendict
+      jsonschema
+      pyserial-asyncio
+      typing-extensions
+      pycryptodome
+      voluptuous
+    ]
+    ++ lib.optionals (pythonOlder "3.9") [ importlib-resources ]
+    ++ lib.optionals (pythonOlder "3.11") [ async-timeout ];
 
   nativeCheckInputs = [
     aioresponses
@@ -71,12 +72,14 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
-  disabledTests = [
-    # # Our two manual scans succeeded and the periodic one was attempted
-    # assert len(mock_scan.mock_calls) == 3
-    # AssertionError: assert 4 == 3
-    "test_periodic_scan_priority"
-  ];
+  disabledTests =
+    [
+      # assert quirked.quirk_metadata.quirk_location.endswith("zigpy/tests/test_quirks_v2.py]-line:104") is False
+      "test_quirks_v2"
+    ]
+    ++ lib.optionals (stdenv.hostPlatform.isLinux && stdenv.hostPlatform.isx86_64) [
+      "test_periodic_scan_priority"
+    ];
 
   disabledTestPaths = [
     # Tests require network access

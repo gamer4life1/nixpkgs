@@ -1,12 +1,13 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, fetchYarnDeps
-, nodejs
-, prefetch-yarn-deps
-, yarn
-, nixosTests
-, git
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  fetchYarnDeps,
+  nodejs,
+  fixup-yarn-lock,
+  yarn,
+  nixosTests,
+  git,
 }:
 
 stdenv.mkDerivation rec {
@@ -42,7 +43,7 @@ stdenv.mkDerivation rec {
 
   nativeBuildInputs = [
     nodejs
-    prefetch-yarn-deps
+    fixup-yarn-lock
     yarn
     git
   ];

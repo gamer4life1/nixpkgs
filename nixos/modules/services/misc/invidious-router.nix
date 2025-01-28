@@ -3,26 +3,28 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   cfg = config.services.invidious-router;
-  settingsFormat = pkgs.formats.yaml {};
+  settingsFormat = pkgs.formats.yaml { };
   configFile = settingsFormat.generate "config.yaml" cfg.settings;
-in {
-  meta.maintainers = [lib.maintainers.s1ls];
+in
+{
+  meta.maintainers = [ lib.maintainers.sils ];
 
   options.services.invidious-router = {
-    enable = lib.mkEnableOption "Enables the invidious-router service";
+    enable = lib.mkEnableOption "the invidious-router service";
     port = lib.mkOption {
       type = lib.types.port;
       default = 8050;
-      description = lib.mdDoc ''
+      description = ''
         Port to bind to.
       '';
     };
     address = lib.mkOption {
       type = lib.types.str;
       default = "127.0.0.1";
-      description = lib.mdDoc ''
+      description = ''
         Address on which invidious-router should listen on.
       '';
     };
@@ -62,7 +64,7 @@ in {
           text_not_present = "YouTube is currently trying to block Invidious instances";
         };
       };
-      description = lib.mdDoc ''
+      description = ''
         Configuration for invidious-router.
         Check https://gitlab.com/gaincoder/invidious-router#configuration
         for configuration options.
@@ -72,25 +74,25 @@ in {
       type = lib.types.package;
       default = pkgs.invidious-router;
       defaultText = lib.literalExpression "pkgs.invidious-router";
-      description = lib.mdDoc ''
+      description = ''
         The invidious-router package to use.
       '';
     };
     nginx = {
-      enable = lib.mkEnableOption (lib.mdDoc ''
+      enable = lib.mkEnableOption ''
         Automatic nginx proxy configuration
-      '');
+      '';
       domain = lib.mkOption {
         type = lib.types.str;
         example = "invidious-router.example.com";
-        description = lib.mdDoc ''
+        description = ''
           The domain on which invidious-router should be served.
         '';
       };
       extraDomains = lib.mkOption {
         type = lib.types.listOf lib.types.str;
-        default = [];
-        description = lib.mdDoc ''
+        default = [ ];
+        description = ''
           Additional domains to serve invidious-router on.
         '';
       };
@@ -98,7 +100,7 @@ in {
   };
   config = lib.mkIf cfg.enable {
     systemd.services.invidious-router = {
-      wantedBy = ["multi-user.target"];
+      wantedBy = [ "multi-user.target" ];
       serviceConfig = {
         Restart = "on-failure";
         ExecStart = "${lib.getExe cfg.package} --configfile ${configFile}";

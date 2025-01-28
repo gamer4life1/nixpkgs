@@ -1,15 +1,15 @@
-{ stdenv
-, lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, setuptools
-, wheel
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pythonOlder,
+  setuptools,
+  wheel,
 }:
 
 buildPythonPackage rec {
   pname = "pyinstrument";
-  version = "4.6.0";
+  version = "5.0.0";
   format = "pyproject";
 
   disabled = pythonOlder "3.7";
@@ -17,8 +17,8 @@ buildPythonPackage rec {
   src = fetchFromGitHub {
     owner = "joerick";
     repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-NSE2mZPbKmvlQbBPx0MoqYfAOjmsf9CllX7dxygZfc4=";
+    tag = "v${version}";
+    hash = "sha256-uJ9KRgSETuxpeEIpBKFz66+Qci86jy36lKkUKpvmKIg=";
   };
 
   nativeBuildInputs = [
@@ -29,9 +29,7 @@ buildPythonPackage rec {
   # Module import recursion
   doCheck = false;
 
-  pythonImportsCheck = [
-    "pyinstrument"
-  ];
+  pythonImportsCheck = [ "pyinstrument" ];
 
   meta = with lib; {
     description = "Call stack profiler for Python";

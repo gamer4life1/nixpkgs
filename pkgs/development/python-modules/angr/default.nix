@@ -1,42 +1,42 @@
-{ lib
-, stdenv
-, ailment
-, archinfo
-, buildPythonPackage
-, cachetools
-, capstone
-, cffi
-, claripy
-, cle
-, cppheaderparser
-, dpkt
-, fetchFromGitHub
-, gitpython
-, itanium-demangler
-, mulpyplexer
-, nampa
-, networkx
-, progressbar2
-, protobuf
-, psutil
-, pycparser
-, pyformlang
-, pythonOlder
-, pythonRelaxDepsHook
-, pyvex
-, rich
-, rpyc
-, setuptools
-, sortedcontainers
-, sqlalchemy
-, sympy
-, unicorn
-, unique-log-filter
+{
+  lib,
+  stdenv,
+  ailment,
+  archinfo,
+  buildPythonPackage,
+  cachetools,
+  capstone,
+  cffi,
+  claripy,
+  cle,
+  cppheaderparser,
+  dpkt,
+  fetchFromGitHub,
+  gitpython,
+  itanium-demangler,
+  mulpyplexer,
+  nampa,
+  networkx,
+  progressbar2,
+  protobuf,
+  psutil,
+  pycparser,
+  pyformlang,
+  pythonOlder,
+  pyvex,
+  rich,
+  rpyc,
+  setuptools,
+  sortedcontainers,
+  sqlalchemy,
+  sympy,
+  unicorn,
+  unique-log-filter,
 }:
 
 buildPythonPackage rec {
   pname = "angr";
-  version = "9.2.97";
+  version = "9.2.137";
   pyproject = true;
 
   disabled = pythonOlder "3.11";
@@ -44,18 +44,22 @@ buildPythonPackage rec {
   src = fetchFromGitHub {
     owner = "angr";
     repo = "angr";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-eJkxflAQFI/sEL4JMlMe+kClnaVSxtoOrPg8HQpH78g=";
+    tag = "v${version}";
+    hash = "sha256-RIsgE/WE7QEmOIyujLObnpTpUR0GgUbavPmgs9QwakE=";
   };
+
+  postPatch = ''
+    # unicorn is also part of build-system
+    substituteInPlace pyproject.toml \
+      --replace-fail "unicorn==2.0.1.post1" "unicorn"
+  '';
 
   pythonRelaxDeps = [
     "capstone"
+    "unicorn"
   ];
 
-  build-system = [
-    pythonRelaxDepsHook
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
   dependencies = [
     ailment
@@ -87,13 +91,11 @@ buildPythonPackage rec {
     unique-log-filter
   ];
 
-  passthru.optional-dependencies = {
-    AngrDB = [
-      sqlalchemy
-    ];
+  optional-dependencies = {
+    AngrDB = [ sqlalchemy ];
   };
 
-  setupPyBuildFlags = lib.optionals stdenv.isLinux [
+  setupPyBuildFlags = lib.optionals stdenv.hostPlatform.isLinux [
     "--plat-name"
     "linux"
   ];
@@ -115,5 +117,7 @@ buildPythonPackage rec {
     homepage = "https://angr.io/";
     license = with licenses; [ bsd2 ];
     maintainers = with maintainers; [ fab ];
+    # angr is pining unicorn
+    broken = versionAtLeast unicorn.version "2.0.1.post1";
   };
 }

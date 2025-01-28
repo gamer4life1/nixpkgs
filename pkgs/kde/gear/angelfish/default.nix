@@ -7,8 +7,6 @@
   rustPlatform,
   cargo,
   rustc,
-  # provided as callPackage input to enable easier overrides through overlays
-  cargoHash ? "sha256-9l28C8rcUAro/o9SY3rA6xRsman3SrfFLjhPJhiiWfc=",
   qcoro,
 }:
 mkKdeDerivation rec {
@@ -19,15 +17,19 @@ mkKdeDerivation rec {
     # include version in the name so we invalidate the FOD
     name = "${pname}-${version}";
     src = sources.${pname};
-    hash = cargoHash;
+    hash = "sha256-offD53HaPG0GQk+aPjRzhhc8d8wfHYmdaJ0X8NtluMU=";
   };
 
   extraNativeBuildInputs = [
     rustPlatform.cargoSetupHook
     cargo
-    corrosion
     rustc
   ];
 
-  extraBuildInputs = [qtsvg qtwebengine qcoro];
+  extraBuildInputs = [
+    qtsvg
+    qtwebengine
+    corrosion
+    qcoro
+  ];
 }

@@ -15,9 +15,9 @@
 {
   cudaVersion,
   flags,
-  hostPlatform,
   lib,
   mkVersionedPackageName,
+  stdenv,
 }:
 let
   inherit (lib)
@@ -29,6 +29,8 @@ let
     trivial
     ;
 
+  inherit (stdenv) hostPlatform;
+
   redistName = "cutensor";
   pname = "libcutensor";
 
@@ -38,6 +40,7 @@ let
     "1.5.0"
     "1.6.2"
     "1.7.0"
+    "2.0.2"
   ];
 
   # Manifests :: { redistrib, feature }
@@ -94,7 +97,7 @@ let
   redistArch = flags.getRedistArch hostPlatform.system;
   # platformIsSupported :: Manifests -> Boolean
   platformIsSupported =
-    { feature, ... }:
+    { feature, redistrib, ... }:
     (attrsets.attrByPath [
       pname
       redistArch
@@ -138,7 +141,7 @@ let
           maintainers = prevAttrs.meta.maintainers ++ [ lib.maintainers.obsidian-systems-maintenance ];
           license = lib.licenses.unfreeRedistributable // {
             shortName = "cuTENSOR EULA";
-            name = "cuTENSOR SUPPLEMENT TO SOFTWARE LICENSE AGREEMENT FOR NVIDIA SOFTWARE DEVELOPMENT KITS";
+            fullName = "cuTENSOR SUPPLEMENT TO SOFTWARE LICENSE AGREEMENT FOR NVIDIA SOFTWARE DEVELOPMENT KITS";
             url = "https://docs.nvidia.com/cuda/cutensor/license.html";
           };
         };

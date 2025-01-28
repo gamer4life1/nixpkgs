@@ -1,31 +1,31 @@
-{ lib
-, buildGoModule
-, fetchFromGitHub
-, installShellFiles
-, makeWrapper
-, less
-, xdg-utils
-, testers
-, runCommand
-, stackit-cli
+{
+  lib,
+  buildGoModule,
+  fetchFromGitHub,
+  installShellFiles,
+  makeWrapper,
+  less,
+  xdg-utils,
+  testers,
+  stackit-cli,
 }:
 
 buildGoModule rec {
   pname = "stackit-cli";
-  version = "0.1.0";
+  version = "0.21.2";
 
   src = fetchFromGitHub {
     owner = "stackitcloud";
     repo = "stackit-cli";
     rev = "v${version}";
-    hash = "sha256-EozgdlxCfWciFg7XPDbn2vztwoAKnuQBwyg/ufGRZQ0=";
+    hash = "sha256-0mFpTE/scvsFbS9VAwXw3tiMHwHgPahzNq7foW4dCUE=";
   };
 
-  vendorHash = "sha256-6WbY8t7Qjxq8oBF+r2rZVgAa6ZNzjHs7Nh16zJQBRdg=";
+  vendorHash = "sha256-fRJ70BTTRKrFdOOm1DAvXj4frdN0Ak71pCRZMnsjYnY=";
 
   subPackages = [ "." ];
 
-  CGO_ENABLED = 0;
+  env.CGO_ENABLED = 0;
 
   ldflags = [
     "-s"
@@ -33,31 +33,30 @@ buildGoModule rec {
     "-X main.version=${version}"
   ];
 
-  nativeBuildInputs = [ installShellFiles makeWrapper ];
-
-  preCheck = ''
-    export HOME=$TMPDIR # needed because the binary always creates a dir & config file
-  '';
+  nativeBuildInputs = [
+    installShellFiles
+    makeWrapper
+  ];
 
   postInstall = ''
-    export HOME=$TMPDIR # needed because the binary always creates a dir & config file
-    mv $out/bin/{${pname},stackit} # rename the binary
+    mv $out/bin/{stackit-cli,stackit} # rename the binary
 
-    installShellCompletion --cmd stackit --bash <($out/bin/stackit completion bash)
-    installShellCompletion --cmd stackit --zsh <($out/bin/stackit completion zsh)
-    installShellCompletion --cmd stackit --fish <($out/bin/stackit completion fish)
-    # Use this instead, once https://github.com/stackitcloud/stackit-cli/issues/153 is fixed:
-    # installShellCompletion --cmd stackit \
-    #   --bash <($out/bin/stackit completion bash) \
-    #   --zsh  <($out/bin/stackit completion zsh)  \
-    #   --fish <($out/bin/stackit completion fish)
+    installShellCompletion --cmd stackit \
+      --bash <($out/bin/stackit completion bash) \
+      --zsh  <($out/bin/stackit completion zsh)  \
+      --fish <($out/bin/stackit completion fish)
     # Ensure that all 3 completion scripts exist AND have content (should be kept for regression testing)
     [ $(find $out/share -not -empty -type f | wc -l) -eq 3 ]
   '';
 
   postFixup = ''
     wrapProgram $out/bin/stackit \
-      --suffix PATH : ${lib.makeBinPath [ less xdg-utils ]}
+      --suffix PATH : ${
+        lib.makeBinPath [
+          less
+          xdg-utils
+        ]
+      }
   '';
 
   nativeCheckInputs = [ less ];
@@ -65,7 +64,7 @@ buildGoModule rec {
   passthru.tests = {
     version = testers.testVersion {
       package = stackit-cli;
-      command = "HOME=$TMPDIR stackit --version";
+      command = "stackit --version";
     };
   };
 

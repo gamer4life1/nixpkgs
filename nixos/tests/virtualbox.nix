@@ -98,7 +98,6 @@ let
     cfg = (import ../lib/eval-config.nix {
       system = if use64bitGuest then "x86_64-linux" else "i686-linux";
       modules = [
-        ../modules/profiles/minimal.nix
         (testVMConfig vmName vmScript)
       ];
     }).config;
@@ -447,7 +446,7 @@ in mapAttrs (mkVBoxTest {} vboxVMs) {
 
     create_vm_simple()
     machine.succeed(ru("VirtualBox >&2 &"))
-    machine.wait_until_succeeds(ru("xprop -name 'Oracle VM VirtualBox Manager'"))
+    machine.wait_until_succeeds(ru("xprop -name 'Oracle VirtualBox Manager'"))
     machine.sleep(5)
     machine.screenshot("gui_manager_started")
     send_vm_startup()

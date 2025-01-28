@@ -2,20 +2,21 @@
   lib,
   fetchFromGitHub,
   php,
+  nixosTests,
 }:
 
 php.buildComposerProject (finalAttrs: {
   pname = "davis";
-  version = "4.4.2";
+  version = "5.0.2";
 
   src = fetchFromGitHub {
     owner = "tchapi";
     repo = "davis";
-    rev = "v${finalAttrs.version}";
-    hash = "sha256-oPzMBCOcAJoHni9SO74RuJDEOcVYc4MtO5rGq1E9g3Q=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-Zl+6nrgspyg6P9gqYwah81Z6Mtni6nUlCp4gTjJWn9M=";
   };
 
-  vendorHash = "sha256-NOb6rc9jVsf+/RVOW7SLBAJk9SihcRxoepUEGBGLi2w=";
+  vendorHash = "sha256-ZV5GNNtex+yKaMP5KaQkx5EaJRAJSwJjIZOCcXlnVW4=";
 
   postInstall = ''
     # Only include the files needed for runtime in the derivation
@@ -25,10 +26,14 @@ php.buildComposerProject (finalAttrs: {
     rm -rf "$out/share"
   '';
 
+  passthru.tests = {
+    inherit (nixosTests) davis;
+  };
+
   meta = {
     changelog = "https://github.com/tchapi/davis/releases/tag/v${finalAttrs.version}";
     homepage = "https://github.com/tchapi/davis";
-    description = "A simple CardDav and CalDav server inspired by Baïkal";
+    description = "Simple CardDav and CalDav server inspired by Baïkal";
     license = lib.licenses.mit;
     maintainers = with lib.maintainers; [ ramblurr ];
   };

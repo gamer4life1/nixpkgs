@@ -1,4 +1,9 @@
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 let
   cfg = config.services.photonvision;
@@ -6,12 +11,12 @@ in
 {
   options = {
     services.photonvision = {
-      enable = lib.mkEnableOption (lib.mdDoc "Enable PhotonVision");
+      enable = lib.mkEnableOption "PhotonVision";
 
-      package = lib.mkPackageOption pkgs "photonvision" {};
+      package = lib.mkPackageOption pkgs "photonvision" { };
 
       openFirewall = lib.mkOption {
-        description = lib.mdDoc ''
+        description = ''
           Whether to open the required ports in the firewall.
         '';
         default = false;
@@ -58,7 +63,12 @@ in
 
     networking.firewall = lib.mkIf cfg.openFirewall {
       allowedTCPPorts = [ 5800 ];
-      allowedTCPPortRanges = [{ from = 1180; to = 1190; }];
+      allowedTCPPortRanges = [
+        {
+          from = 1180;
+          to = 1190;
+        }
+      ];
     };
   };
 }

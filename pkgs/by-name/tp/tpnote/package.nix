@@ -1,43 +1,52 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, fetchpatch
-, rustPlatform
-, cmake
-, pkg-config
-, oniguruma
-, darwin
-, installShellFiles
-, tpnote
-, testers
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  rustPlatform,
+  cmake,
+  pkg-config,
+  oniguruma,
+  darwin,
+  installShellFiles,
+  tpnote,
+  testers,
 }:
-
 
 rustPlatform.buildRustPackage rec {
   pname = "tpnote";
-  version = "1.24.0";
+  version = "1.25.1";
 
   src = fetchFromGitHub {
     owner = "getreu";
     repo = "tp-note";
     rev = "v${version}";
-    hash = "sha256-VzBLstjOkaphkBpnhXXBwg48c2s20yZKBHUrQvnahlA=";
+    hash = "sha256-TT34+r4f3TaurLwyXxQa5AZT1xPOKkDYPra/bgchoTc=";
   };
 
-  cargoHash = "sha256-4oY1KOdMy9V9Y/sCiWx6160wvUItMvYwNp2TRZrgUZY=";
+  cargoHash = "sha256-1+LPsTvJwouFkJoCEkRUjKGqldXLYyF3Y4UuISoYF2A=";
 
   nativeBuildInputs = [
     cmake
     pkg-config
     installShellFiles
   ];
-  buildInputs = [
-    oniguruma
-  ] ++ lib.optionals stdenv.isDarwin (with darwin.apple_sdk.frameworks; [
-     AppKit
-     CoreServices
-     SystemConfiguration
-  ]);
+
+  buildInputs =
+    [
+      oniguruma
+    ]
+    ++ lib.optionals stdenv.hostPlatform.isDarwin (
+      with darwin.apple_sdk.frameworks;
+      [
+        AppKit
+        CoreServices
+        SystemConfiguration
+      ]
+    );
+
+  postInstall = ''
+    installManPage docs/build/man/man1/tpnote.1
+  '';
 
   RUSTONIG_SYSTEM_LIBONIG = true;
 

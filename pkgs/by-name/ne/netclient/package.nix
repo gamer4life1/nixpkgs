@@ -1,26 +1,25 @@
-{ buildGoModule
-, fetchFromGitHub
-, lib
-, libX11
-, stdenv
-, darwin
+{
+  buildGoModule,
+  fetchFromGitHub,
+  lib,
+  libX11,
+  stdenv,
 }:
 
 buildGoModule rec {
   pname = "netclient";
-  version = "0.23.0";
+  version = "0.30.0";
 
   src = fetchFromGitHub {
     owner = "gravitl";
     repo = "netclient";
     rev = "v${version}";
-    hash = "sha256-Wglh6tcpanEmXwoRKdAot/l4RS+EbIIHI1etQ9ic7BI=";
+    hash = "sha256-F9hyTjRk2gqS9Jf+2/ZVYsvltr+lohK1loCAlJGyPEk=";
   };
 
-  vendorHash = "sha256-or/0z+RiOkZ2qgEqXNI/LafN+eWAzvLuSZta/QNUI3g=";
+  vendorHash = "sha256-ccTN1/LmbriQBia/zi+66+Sd7TUs7Qdr4Cwvsp3Wv30=";
 
-  buildInputs = lib.optional stdenv.isDarwin darwin.apple_sdk.frameworks.Cocoa
-    ++ lib.optional stdenv.isLinux libX11;
+  buildInputs = lib.optional stdenv.hostPlatform.isLinux libX11;
 
   hardeningEnabled = [ "pie" ];
 

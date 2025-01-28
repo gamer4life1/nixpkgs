@@ -1,32 +1,34 @@
-{ lib, stdenv
-, fetchFromGitHub
-, autoreconfHook
-, pkg-config
-, ibus
-, gtk3
-, m17n_lib
-, m17n_db
-, gettext
-, python3
-, wrapGAppsHook
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  autoreconfHook,
+  pkg-config,
+  ibus,
+  gtk3,
+  m17n_lib,
+  m17n_db,
+  gettext,
+  python3,
+  wrapGAppsHook3,
 }:
 
 stdenv.mkDerivation rec {
   pname = "ibus-m17n";
-  version = "1.4.28";
+  version = "1.4.34";
 
   src = fetchFromGitHub {
     owner = "ibus";
     repo = "ibus-m17n";
     rev = version;
-    sha256 = "sha256-3/AnytPIIi1Q2i/25rkqOZWgUCtouO+cS+TByp9neOI=";
+    sha256 = "sha256-Dwnrpsk8cx51b702SXCEwfGGk4bZ8w4EPcfWpKd5RDI=";
   };
 
   nativeBuildInputs = [
     autoreconfHook
     gettext
     pkg-config
-    wrapGAppsHook
+    wrapGAppsHook3
   ];
 
   buildInputs = [

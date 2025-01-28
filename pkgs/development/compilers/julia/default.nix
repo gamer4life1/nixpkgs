@@ -1,4 +1,4 @@
-{ callPackage }:
+{ callPackage, fetchpatch2 }:
 
 let
   juliaWithPackages = callPackage ../../julia-modules { };
@@ -12,7 +12,6 @@ let
 in
 
 {
-  julia_16-bin = wrapJulia (callPackage ./1.6-bin.nix { });
   julia_19-bin = wrapJulia (callPackage
     (import ./generic-bin.nix {
       version = "1.9.4";
@@ -30,12 +29,23 @@ in
     { });
   julia_110-bin = wrapJulia (callPackage
     (import ./generic-bin.nix {
-      version = "1.10.2";
+      version = "1.10.8";
       sha256 = {
-        x86_64-linux = "51bccc9bb245197f24e6b2394e6aa69c0dc1e41b4e300b796e17da34ef64db1e";
-        aarch64-linux = "f319ff2812bece0918cb9ea6e0df54cc9412fc5ef8c0589b6a4fea485c07535d";
-        x86_64-darwin = "52679b9285b9aa8354afade8cc5a6c98d30af31ee72e4e879d17cef5dd4d4213";
-        aarch64-darwin = "c7392237725b54d2d145bf56ce362e502596ea4338523a91bf20ce02379cea80";
+        x86_64-linux = "0410175aeec3df63173c15187f2083f179d40596d36fd3a57819cc5f522ae735";
+        aarch64-linux = "8d63dd12595a08edc736be8d6c4fea1840f137b81c62079d970dbd1be448b8cd";
+        x86_64-darwin = "8dae60def14db9e9b0f70891f15483d05785ae27a2c14f8f4b1ce27010e4015f";
+        aarch64-darwin = "cdd5891a7b143bde835a79155471b82c5482d4dc5576f719351810548242e64b";
+      };
+    })
+    { });
+  julia_111-bin = wrapJulia (callPackage
+    (import ./generic-bin.nix {
+      version = "1.11.3";
+      sha256 = {
+        x86_64-linux = "7d48da416c8cb45582a1285d60127ee31ef7092ded3ec594a9f2cf58431c07fd";
+        aarch64-linux = "0c1f2f60c3ecc37ae0c559db325dc64858fb11d6729b25d63f23e5285f7906ef";
+        x86_64-darwin = "5220aade1b43db722fb4e287f1c5d25aa492267b86a846db1546504836cca1be";
+        aarch64-darwin = "554fb0ddb4d94d623c83ca5e9d309fe1a7a0924445cb18ec3b863fb3367b0ba8";
       };
     })
     { });
@@ -50,11 +60,27 @@ in
     { });
   julia_110 = wrapJulia (callPackage
     (import ./generic.nix {
-      version = "1.10.2";
-      hash = "sha256-YkaHIK+8QQ608mLtJDOpITJieHLJ9pC3BNwEXMsVVAE=";
+      version = "1.10.8";
+      hash = "sha256-NPojubjOgy32CWlD/TDzI764Ca7cMsFj9r7vUdUW9Oc=";
       patches = [
-        ./patches/1.10/0001-skip-building-docs-as-it-requires-network-access.patch
         ./patches/1.10/0002-skip-failing-and-flaky-tests.patch
+        # Revert https://github.com/JuliaLang/julia/pull/55354
+        # [build] Some improvements to the LLVM build system
+        # Related: https://github.com/JuliaLang/julia/issues/55617
+        (fetchpatch2 {
+          url = "https://github.com/JuliaLang/julia/commit/0be37db8c5b5a440bd9a11960ae9c998027b7337.patch";
+          revert = true;
+          hash = "sha256-gXC3LE3AuHMlSdA4dW+rbAhJpSB6ZMaz9X1qrHDPX7Y=";
+        })
+      ];
+    })
+    { });
+  julia_111 = wrapJulia (callPackage
+    (import ./generic.nix {
+      version = "1.11.3";
+      hash = "sha256-Ansli0e04agdHs3TVa3v/bbAGBya2YjnF/XkdaEqHeg=";
+      patches = [
+        ./patches/1.11/0002-skip-failing-and-flaky-tests.patch
       ];
     })
     { });

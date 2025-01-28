@@ -11,19 +11,19 @@
 
 buildPythonPackage rec {
   pname = "publicsuffixlist";
-  version = "0.10.0.20240403";
+  version = "1.0.2.20250124";
   pyproject = true;
 
   disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-DQgjgr35l5I33BWLaOQTUnQpFhBMXUB0Jx4jQXbeBZU=";
+    hash = "sha256-bl/ziwDSG6VmLqNo6TEhv7G+//veKNDa6nFSs4MMV5g=";
   };
 
   build-system = [ setuptools ];
 
-  passthru.optional-dependencies = {
+  optional-dependencies = {
     update = [ requests ];
     readme = [ pandoc ];
   };
@@ -35,6 +35,7 @@ buildPythonPackage rec {
   pytestFlagsArray = [ "publicsuffixlist/test.py" ];
 
   meta = with lib; {
+    changelog = "https://github.com/ko-zu/psl/blob/v${version}-gha/CHANGES.md";
     description = "Public Suffix List parser implementation";
     homepage = "https://github.com/ko-zu/psl";
     license = licenses.mpl20;

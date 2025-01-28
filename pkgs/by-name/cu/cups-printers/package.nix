@@ -1,6 +1,7 @@
-{ lib
-, fetchFromGitHub
-, python3
+{
+  lib,
+  fetchFromGitHub,
+  python3,
 }:
 
 python3.pkgs.buildPythonApplication rec {
@@ -11,31 +12,27 @@ python3.pkgs.buildPythonApplication rec {
   src = fetchFromGitHub {
     owner = "audiusGmbH";
     repo = "cups-printers";
-    rev = "refs/tags/${version}";
+    tag = version;
     hash = "sha256-HTR9t9ElQmCzJfdWyu+JQ8xBfDNpXl8XtNsJxGSfBXk=";
   };
 
   pythonRelaxDeps = [
+    "typer"
     "validators"
   ];
 
-  nativeBuildInputs = with python3.pkgs; [
-    poetry-core
-    pythonRelaxDepsHook
-  ];
+  build-system = with python3.pkgs; [ poetry-core ];
 
-  propagatedBuildInputs = with python3.pkgs; [
+  dependencies = with python3.pkgs; [
     pycups
     typer
     validators
-  ] ++ typer.optional-dependencies.all;
+  ];
 
   # Project has no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "cups_printers"
-  ];
+  pythonImportsCheck = [ "cups_printers" ];
 
   meta = with lib; {
     description = "Tool for interacting with a CUPS server";

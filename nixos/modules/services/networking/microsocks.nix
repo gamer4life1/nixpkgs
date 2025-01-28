@@ -1,4 +1,5 @@
-{ config,
+{
+  config,
   lib,
   pkgs,
   ...
@@ -8,33 +9,46 @@ let
   cfg = config.services.microsocks;
 
   cmd =
-    if cfg.execWrapper != null
-    then "${cfg.execWrapper} ${cfg.package}/bin/microsocks"
-    else "${cfg.package}/bin/microsocks";
+    if cfg.execWrapper != null then
+      "${cfg.execWrapper} ${cfg.package}/bin/microsocks"
+    else
+      "${cfg.package}/bin/microsocks";
   args =
-    [ "-i" cfg.ip "-p" (toString cfg.port) ]
+    [
+      "-i"
+      cfg.ip
+      "-p"
+      (toString cfg.port)
+    ]
     ++ lib.optionals (cfg.authOnce) [ "-1" ]
     ++ lib.optionals (cfg.disableLogging) [ "-q" ]
-    ++ lib.optionals (cfg.outgoingBindIp != null) [ "-b" cfg.outgoingBindIp ]
-    ++ lib.optionals (cfg.authUsername != null) [ "-u" cfg.authUsername ];
-in {
+    ++ lib.optionals (cfg.outgoingBindIp != null) [
+      "-b"
+      cfg.outgoingBindIp
+    ]
+    ++ lib.optionals (cfg.authUsername != null) [
+      "-u"
+      cfg.authUsername
+    ];
+in
+{
   options.services.microsocks = {
-    enable = lib.mkEnableOption (lib.mdDoc "Tiny, portable SOCKS5 server with very moderate resource usage");
+    enable = lib.mkEnableOption "Tiny, portable SOCKS5 server with very moderate resource usage";
     user = lib.mkOption {
       default = "microsocks";
-      description = lib.mdDoc "User microsocks runs as.";
+      description = "User microsocks runs as.";
       type = lib.types.str;
     };
     group = lib.mkOption {
       default = "microsocks";
-      description = lib.mdDoc "Group microsocks runs as.";
+      description = "Group microsocks runs as.";
       type = lib.types.str;
     };
-    package = lib.mkPackageOption pkgs "microsocks" {};
+    package = lib.mkPackageOption pkgs "microsocks" { };
     ip = lib.mkOption {
       type = lib.types.str;
       default = "127.0.0.1";
-      description = lib.mdDoc ''
+      description = ''
         IP on which microsocks should listen. Defaults to 127.0.0.1 for
         security reasons.
       '';
@@ -42,17 +56,17 @@ in {
     port = lib.mkOption {
       type = lib.types.port;
       default = 1080;
-      description = lib.mdDoc "Port on which microsocks should listen.";
+      description = "Port on which microsocks should listen.";
     };
     disableLogging = lib.mkOption {
       type = lib.types.bool;
       default = false;
-      description = lib.mdDoc "If true, microsocks will not log any messages to stdout/stderr.";
+      description = "If true, microsocks will not log any messages to stdout/stderr.";
     };
     authOnce = lib.mkOption {
       type = lib.types.bool;
       default = false;
-      description = lib.mdDoc ''
+      description = ''
         If true, once a specific ip address authed successfully with user/pass,
         it is added to a whitelist and may use the proxy without auth.
       '';
@@ -60,19 +74,19 @@ in {
     outgoingBindIp = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
       default = null;
-      description = lib.mdDoc "Specifies which ip outgoing connections are bound to";
+      description = "Specifies which ip outgoing connections are bound to";
     };
     authUsername = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
       default = null;
       example = "alice";
-      description = lib.mdDoc "Optional username to use for authentication.";
+      description = "Optional username to use for authentication.";
     };
     authPasswordFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
       default = null;
       example = "/run/secrets/microsocks-password";
-      description = lib.mdDoc "Path to a file containing the password for authentication.";
+      description = "Path to a file containing the password for authentication.";
     };
     execWrapper = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
@@ -80,7 +94,7 @@ in {
       example = ''
         ''${pkgs.mullvad-vpn}/bin/mullvad-exclude
       '';
-      description = lib.mdDoc ''
+      description = ''
         An optional command to prepend to the microsocks command (such as proxychains, or a VPN exclude command).
       '';
     };
@@ -100,7 +114,7 @@ in {
         };
       };
       groups = lib.mkIf (cfg.group == "microsocks") {
-        microsocks = {};
+        microsocks = { };
       };
     };
     systemd.services.microsocks = {
@@ -113,7 +127,9 @@ in {
         Group = cfg.group;
         Restart = "on-failure";
         RestartSec = 10;
-        LoadCredential = lib.optionalString (cfg.authPasswordFile != null) "MICROSOCKS_PASSWORD_FILE:${cfg.authPasswordFile}";
+        LoadCredential = lib.optionalString (
+          cfg.authPasswordFile != null
+        ) "MICROSOCKS_PASSWORD_FILE:${cfg.authPasswordFile}";
         MemoryDenyWriteExecute = true;
         SystemCallArchitectures = "native";
         PrivateTmp = true;
@@ -133,14 +149,15 @@ in {
         ];
       };
       script =
-        if cfg.authPasswordFile != null
-        then ''
-          PASSWORD=$(cat "$CREDENTIALS_DIRECTORY/MICROSOCKS_PASSWORD_FILE")
-          ${cmd} ${lib.escapeShellArgs args} -P "$PASSWORD"
-        ''
-        else ''
-          ${cmd} ${lib.escapeShellArgs args}
-        '';
+        if cfg.authPasswordFile != null then
+          ''
+            PASSWORD=$(cat "$CREDENTIALS_DIRECTORY/MICROSOCKS_PASSWORD_FILE")
+            ${cmd} ${lib.escapeShellArgs args} -P "$PASSWORD"
+          ''
+        else
+          ''
+            ${cmd} ${lib.escapeShellArgs args}
+          '';
     };
   };
 }

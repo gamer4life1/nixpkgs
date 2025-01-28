@@ -1,28 +1,41 @@
-{ lib, stdenv, fetchFromGitHub, rustPlatform, pkg-config, openssl, Security }:
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  rustPlatform,
+  pkg-config,
+  openssl,
+  Security,
+}:
 
 rustPlatform.buildRustPackage rec {
   pname = "cargo-whatfeatures";
-  version = "0.9.10";
+  version = "0.9.13";
 
   src = fetchFromGitHub {
     owner = "museun";
     repo = pname;
     rev = "v${version}";
-    sha256 = "sha256-80VbQyOg6jvX98QRcCVN/wwhAm4bO/UfHEIv4gP8IlA=";
+    sha256 = "sha256-YJ08oBTn9OwovnTOuuc1OuVsQp+/TPO3vcY4ybJ26Ms=";
   };
 
-  cargoHash = "sha256-mp9KUJuwSwRuxQAEilYwNZwqe3ipN4JzsaO5Pi3V9xg=";
+  cargoHash = "sha256-Zi9FCNBxQ9S4S9k6hoMUOixTs6PJyxmgTB+ArrX8oBE=";
 
   nativeBuildInputs = [ pkg-config ];
 
-  buildInputs = [ openssl ]
-    ++ lib.optionals stdenv.isDarwin [ Security ];
+  buildInputs = [ openssl ] ++ lib.optionals stdenv.hostPlatform.isDarwin [ Security ];
 
   meta = with lib; {
-    description = "A simple cargo plugin to get a list of features for a specific crate";
+    description = "Simple cargo plugin to get a list of features for a specific crate";
     mainProgram = "cargo-whatfeatures";
     homepage = "https://github.com/museun/cargo-whatfeatures";
-    license = with licenses; [ mit asl20 ];
-    maintainers = with maintainers; [ ivan-babrou matthiasbeyer ];
+    license = with licenses; [
+      mit
+      asl20
+    ];
+    maintainers = with maintainers; [
+      ivan-babrou
+      matthiasbeyer
+    ];
   };
 }

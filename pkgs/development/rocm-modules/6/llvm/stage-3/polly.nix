@@ -1,6 +1,7 @@
-{ stdenv
-, callPackage
-, rocmUpdateScript
+{
+  stdenv,
+  callPackage,
+  rocmUpdateScript,
 }:
 
 callPackage ../base.nix rec {
@@ -11,7 +12,7 @@ callPackage ../base.nix rec {
   extraPostPatch = ''
     # `add_library cannot create target "llvm_gtest" because an imported target with the same name already exists`
     substituteInPlace CMakeLists.txt \
-      --replace "NOT TARGET gtest" "FALSE"
+      --replace-fail "NOT TARGET gtest" "FALSE"
   '';
 
   checkTargets = [ "check-${targetName}" ];

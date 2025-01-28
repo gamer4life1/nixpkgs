@@ -1,18 +1,30 @@
-{ lib
-, buildNpmPackage
-, fetchFromGitHub
-, fetchPypi
-, nodejs
-, python3
-, gettext
-, nixosTests
-, plugins ? [ ]
+{
+  lib,
+  buildNpmPackage,
+  fetchFromGitHub,
+  fetchPypi,
+  fetchpatch2,
+  nodejs,
+  python3,
+  gettext,
+  nixosTests,
+  plugins ? [ ],
 }:
 
 let
   python = python3.override {
+    self = python;
     packageOverrides = self: super: {
       django = super.django_4;
+
+      django-oauth-toolkit = super.django-oauth-toolkit.overridePythonAttrs (oldAttrs: {
+        version = "2.3.0";
+        src = fetchFromGitHub {
+          inherit (oldAttrs.src) owner repo;
+          rev = "refs/tags/v${version}";
+          hash = "sha256-oGg5MD9p4PSUVkt5pGLwjAF4SHHf4Aqr+/3FsuFaybY=";
+        };
+      });
 
       stripe = super.stripe.overridePythonAttrs rec {
         version = "7.9.0";
@@ -25,17 +37,19 @@ let
       };
 
       pretix-plugin-build = self.callPackage ./plugin-build.nix { };
+
+      sentry-sdk = super.sentry-sdk_2;
     };
   };
 
   pname = "pretix";
-  version = "2024.3.0";
+  version = "2024.11.0";
 
   src = fetchFromGitHub {
     owner = "pretix";
     repo = "pretix";
     rev = "refs/tags/v${version}";
-    hash = "sha256-Wz1vZcqgwyS0xJgTtRxqfaJpJ1fAMhIyxvTvBT/ABSo=";
+    hash = "sha256-vmk7oW9foXkZdt3XOLJDbPldX2TruJOgd8mmi5tGqNw=";
   };
 
   npmDeps = buildNpmPackage {
@@ -43,7 +57,7 @@ let
     inherit version src;
 
     sourceRoot = "${src.name}/src/pretix/static/npm_dir";
-    npmDepsHash = "sha256-2fHlEEmYzpF3SyvF7+FbwCt+zQVGF0/kslDFnJ+DQGE=";
+    npmDepsHash = "sha256-4PrOrI2cykkuzob+DMeAu/GF5OMCho40G3BjCwVW/tE=";
 
     dontBuild = true;
 
@@ -65,6 +79,35 @@ python.pkgs.buildPythonApplication rec {
     # Discover pretix.plugin entrypoints during build and add them into
     # INSTALLED_APPS, so that their static files are collected.
     ./plugin-build.patch
+
+    (fetchpatch2 {
+      # fix tests after 2025-01-01
+      url = "https://github.com/pretix/pretix/commit/5a5a551c21461d9ef36337480c9874d65a9fdba9.patch";
+      hash = "sha256-ZtSVI6nVlJtNrnBZ9ktIqFGtNf+oWtvNsgCWwOUwVug=";
+    })
+  ];
+
+  pythonRelaxDeps = [
+    "django-phonenumber-field"
+    "dnspython"
+    "importlib-metadata"
+    "kombu"
+    "markdown"
+    "pillow"
+    "protobuf"
+    "pycryptodome"
+    "pyjwt"
+    "python-bidi"
+    "qrcode"
+    "redis"
+    "requests"
+    "sentry-sdk"
+    "ua-parser"
+    "webauthn"
+  ];
+
+  pythonRemoveDeps = [
+    "vat-moss-forked" # we provide a patched vat-moss package
   ];
 
   postPatch = ''
@@ -77,110 +120,99 @@ python.pkgs.buildPythonApplication rec {
     sed -i "/setuptools-rust/d" pyproject.toml
 
     substituteInPlace pyproject.toml \
-      --replace-fail phonenumberslite phonenumbers \
-      --replace-fail psycopg2-binary psycopg2 \
-      --replace-fail vat_moss_forked==2020.3.20.0.11.0 vat-moss \
-      --replace-fail "bleach==5.0.*" bleach \
-      --replace-fail "dnspython==2.6.*" dnspython \
-      --replace-fail "django-countries==7.5.*" django-countries \
-      --replace-fail "django-filter==24.1" django-filter \
-      --replace-fail "importlib_metadata==7.*" importlib_metadata \
-      --replace-fail "markdown==3.6" markdown \
-      --replace-fail "protobuf==5.26.*" protobuf \
-      --replace-fail "pycryptodome==3.20.*" pycryptodome \
-      --replace-fail "pypdf==3.9.*" pypdf \
-      --replace-fail "python-dateutil==2.9.*" python-dateutil \
-      --replace-fail "sentry-sdk==1.42.*" sentry-sdk \
-      --replace-fail "stripe==7.9.*" stripe
+      --replace-fail '"backend"' '"setuptools.build_meta"' \
+      --replace-fail 'backend-path = ["_build"]' ""
   '';
 
   build-system = with python.pkgs; [
     gettext
     nodejs
-    pythonRelaxDepsHook
     setuptools
     tomli
   ];
 
-  dependencies = with python.pkgs; [
-    arabic-reshaper
-    babel
-    beautifulsoup4
-    bleach
-    celery
-    chardet
-    cryptography
-    css-inline
-    defusedcsv
-    dj-static
-    django
-    django-bootstrap3
-    django-compressor
-    django-countries
-    django-filter
-    django-formset-js-improved
-    django-formtools
-    django-hierarkey
-    django-hijack
-    django-i18nfield
-    django-libsass
-    django-localflavor
-    django-markup
-    django-oauth-toolkit
-    django-otp
-    django-phonenumber-field
-    django-redis
-    django-scopes
-    django-statici18n
-    djangorestframework
-    dnspython
-    drf-ujson2
-    geoip2
-    importlib-metadata
-    isoweek
-    jsonschema
-    kombu
-    libsass
-    lxml
-    markdown
-    mt-940
-    oauthlib
-    openpyxl
-    packaging
-    paypalrestsdk
-    paypal-checkout-serversdk
-    pyjwt
-    phonenumbers
-    pillow
-    pretix-plugin-build
-    protobuf
-    psycopg2
-    pycountry
-    pycparser
-    pycryptodome
-    pypdf
-    python-bidi
-    python-dateutil
-    pytz
-    pytz-deprecation-shim
-    pyuca
-    qrcode
-    redis
-    reportlab
-    requests
-    sentry-sdk
-    sepaxml
-    slimit
-    static3
-    stripe
-    text-unidecode
-    tlds
-    tqdm
-    vat-moss
-    vobject
-    webauthn
-    zeep
-  ] ++ plugins;
+  dependencies =
+    with python.pkgs;
+    [
+      arabic-reshaper
+      babel
+      beautifulsoup4
+      bleach
+      celery
+      chardet
+      cryptography
+      css-inline
+      defusedcsv
+      django
+      django-bootstrap3
+      django-compressor
+      django-countries
+      django-filter
+      django-formset-js-improved
+      django-formtools
+      django-hierarkey
+      django-hijack
+      django-i18nfield
+      django-libsass
+      django-localflavor
+      django-markup
+      django-oauth-toolkit
+      django-otp
+      django-phonenumber-field
+      django-redis
+      django-scopes
+      django-statici18n
+      djangorestframework
+      dnspython
+      drf-ujson2
+      geoip2
+      importlib-metadata
+      isoweek
+      jsonschema
+      kombu
+      libsass
+      lxml
+      markdown
+      mt-940
+      oauthlib
+      openpyxl
+      packaging
+      paypalrestsdk
+      paypal-checkout-serversdk
+      pyjwt
+      phonenumberslite
+      pillow
+      pretix-plugin-build
+      protobuf
+      psycopg2-binary
+      pycountry
+      pycparser
+      pycryptodome
+      pypdf
+      python-bidi
+      python-dateutil
+      pytz
+      pytz-deprecation-shim
+      pyuca
+      qrcode
+      redis
+      reportlab
+      requests
+      sentry-sdk
+      sepaxml
+      slimit
+      stripe
+      text-unidecode
+      tlds
+      tqdm
+      ua-parser
+      vat-moss
+      vobject
+      webauthn
+      zeep
+    ]
+    ++ django.optional-dependencies.argon2
+    ++ plugins;
 
   optional-dependencies = with python.pkgs; {
     memcached = [
@@ -198,20 +230,36 @@ python.pkgs.buildPythonApplication rec {
 
   dontStrip = true; # no binaries
 
-  nativeCheckInputs = with python.pkgs; [
-    pytestCheckHook
-    pytest-xdist
-    pytest-mock
-    pytest-django
-    pytest-asyncio
-    pytest-rerunfailures
-    freezegun
-    fakeredis
-    responses
-  ] ++ lib.flatten (lib.attrValues optional-dependencies);
+  nativeCheckInputs =
+    with python.pkgs;
+    [
+      pytestCheckHook
+      pytest-xdist
+      pytest-mock
+      pytest-django
+      pytest-asyncio
+      pytest-rerunfailures
+      freezegun
+      fakeredis
+      responses
+    ]
+    ++ lib.flatten (lib.attrValues optional-dependencies);
 
   pytestFlagsArray = [
-    "--reruns" "3"
+    "--reruns"
+    "3"
+  ];
+
+  disabledTests = [
+    # unreliable around day changes
+    "test_order_create_invoice"
+
+    # outdated translation files
+    # https://github.com/pretix/pretix/commit/c4db2a48b6ac81763fa67475d8182aee41c31376
+    "test_different_dates_spanish"
+    "test_same_day_spanish"
+    "test_same_month_spanish"
+    "test_same_year_spanish"
   ];
 
   preCheck = ''
@@ -223,9 +271,9 @@ python.pkgs.buildPythonApplication rec {
     inherit
       npmDeps
       python
-    ;
-    plugins = lib.recurseIntoAttrs
-      (python.pkgs.callPackage ./plugins {
+      ;
+    plugins = lib.recurseIntoAttrs (
+      python.pkgs.callPackage ./plugins {
         inherit (python.pkgs) callPackage;
       }
     );

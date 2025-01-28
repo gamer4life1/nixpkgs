@@ -1,63 +1,90 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, numpy
-, pytestCheckHook
-, pythonOlder
-, torch
-, requests
-, setuptools
-, soundfile
-, typing-extensions
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  flac,
+  groq,
+  httpx,
+  openai-whisper,
+  openai,
+  pocketsphinx,
+  pyaudio,
+  pytestCheckHook,
+  pythonOlder,
+  requests,
+  respx,
+  setuptools,
+  soundfile,
+  typing-extensions,
 }:
 
 buildPythonPackage rec {
   pname = "speechrecognition";
-  version = "3.10.3";
+  version = "3.12.0";
   pyproject = true;
 
-  disabled = pythonOlder "3.8";
+  disabled = pythonOlder "3.9";
 
   src = fetchFromGitHub {
     owner = "Uberi";
     repo = "speech_recognition";
-    rev = "refs/tags/${version}";
-    hash = "sha256-g2DE3u2nuJHqWA2X8S6zw5nUVS1yvSqO0VI3zKoIUgg=";
+    tag = version;
+    hash = "sha256-2yc5hztPBOysHxUQcS76ioCXmqNqjid6QUF4qPlIt24=";
   };
 
-  build-system = [
-    setuptools
-  ];
+  postPatch = ''
+    # Remove Bundled binaries
+    rm speech_recognition/flac-*
+    rm -r third-party
 
-  dependencies = [
-    requests
-    typing-extensions
-  ];
+    substituteInPlace speech_recognition/audio.py \
+      --replace-fail 'shutil_which("flac")' '"${lib.getExe flac}"'
+  '';
+
+  build-system = [ setuptools ];
+
+  dependencies = [ typing-extensions ];
+
+  optional-dependencies = {
+    assemblyai = [ requests ];
+    audio = [ pyaudio ];
+    groq = [
+      groq
+      httpx
+    ];
+    openai = [
+      httpx
+      openai
+    ];
+    pocketsphinx = [ pocketsphinx ];
+    whisper-local = [
+      openai-whisper
+      soundfile
+    ];
+  };
 
   nativeCheckInputs = [
-    numpy
+    groq
     pytestCheckHook
-    torch
-    soundfile
-  ];
+    pocketsphinx
+    respx
+  ] ++ lib.flatten (builtins.attrValues optional-dependencies);
 
-  pythonImportsCheck = [
-    "speech_recognition"
-  ];
+  pythonImportsCheck = [ "speech_recognition" ];
 
   disabledTests = [
-    # Test files are missing in source
-    "test_flac"
-    # Attribute error
-    "test_whisper"
-    # PocketSphinx is not available in Nixpkgs
-    "test_sphinx"
+    # Parsed string does not match expected
+    "test_sphinx_keywords"
   ];
 
   meta = with lib; {
     description = "Speech recognition module for Python, supporting several engines and APIs, online and offline";
     homepage = "https://github.com/Uberi/speech_recognition";
-    license = with licenses; [ gpl2Only bsd3 ];
+    changelog = "https://github.com/Uberi/speech_recognition/releases/tag/${version}";
+    license = with licenses; [
+      gpl2Only
+      bsd3
+    ];
     maintainers = with maintainers; [ fab ];
   };
 }
